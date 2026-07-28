@@ -1,0 +1,14 @@
+{
+  "name": "usage-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hostable AI quota / usage dashboard",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

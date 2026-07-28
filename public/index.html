@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Quota Watch</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <button type="button" class="toolbar-btn" id="reset-layout" title="Reset card positions">Reset layout</button>
+    </div>
+    <div class="dashboard is-editable" id="dashboard">
+
+      <!-- Kimi (tall) -->
+      <article class="card card-kimi" id="card-kimi">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#111"/><text x="12" y="16.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#fff">K</text></svg>
+            </span>
+            <h2 class="title">Kimi quota</h2>
+          </div>
+          <span class="live-dot" data-live="kimi">--</span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="kimi-totalPct">--%</output>
+            <span class="name">Total usage</span>
+            <span class="reset" id="kimi-totalReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="kimi-totalRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">5-hour usage</span>
+            <span class="val" id="kimi-fivePct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="kimi-fiveRail" aria-hidden="true"></div>
+          <span class="row-sub" id="kimi-fiveReset"></span>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">7-day usage</span>
+            <span class="val" id="kimi-sevenPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="kimi-sevenRail" aria-hidden="true"></div>
+          <span class="row-sub" id="kimi-sevenReset"></span>
+        </div>
+
+        <div class="section" id="kimi-giftSection" hidden>
+          <div class="divider"></div>
+          <p class="group-label">Gift usage</p>
+          <div id="kimi-giftWrap"></div>
+        </div>
+      </article>
+
+      <!-- Claude -->
+      <article class="card" id="card-claude">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#D97757"/><g stroke="#fff" stroke-width="2.2" stroke-linecap="round"><line x1="7.2" y1="12" x2="16.8" y2="12"/><line x1="12" y1="7.2" x2="12" y2="16.8"/><line x1="8.6" y1="8.6" x2="15.4" y2="15.4"/><line x1="8.6" y1="15.4" x2="15.4" y2="8.6"/></g></svg>
+            </span>
+            <h2 class="title">Claude usage</h2>
+          </div>
+          <span class="live-dot" data-live="claude">--</span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="claude-fivePct">--%</output>
+            <span class="name">5-hour session</span>
+            <span class="reset" id="claude-fiveReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="claude-fiveRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">7-day usage</span>
+            <span class="val" id="claude-sevenPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="claude-sevenRail" aria-hidden="true"></div>
+          <span class="row-sub" id="claude-sevenReset"></span>
+        </div>
+
+        <div class="section" id="claude-scopedSection" hidden>
+          <div class="divider"></div>
+          <p class="group-label">Model limits · weekly</p>
+          <div id="claude-scopedWrap"></div>
+        </div>
+      </article>
+
+      <!-- Cursor -->
+      <article class="card" id="card-cursor">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><defs><linearGradient id="curGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111111"/><stop offset="1" stop-color="#4A4A4A"/></linearGradient></defs><rect width="24" height="24" rx="5" fill="url(#curGrad)"/><path d="M6 5.5 L12 9 L18 5.5 M6 5.5 V13 L12 16.5 L18 13 V5.5 M12 9 V16.5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg>
+            </span>
+            <h2 class="title">Cursor usage</h2>
+          </div>
+          <span class="header-right">
+            <span class="plan" id="cursor-plan"></span>
+            <span class="live-dot" data-live="cursor">--</span>
+          </span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="cursor-totalPct">--%</output>
+            <span class="name">Included usage</span>
+            <span class="reset" id="cursor-cycle"></span>
+          </div>
+          <div class="pxrail hero-rail" id="cursor-totalRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="mini">
+          <div class="mini-line">
+            <output id="cursor-apiPct">--%</output>
+            <span class="name">API usage (named model)</span>
+          </div>
+          <div class="pxrail mini-rail" id="cursor-apiRail" aria-hidden="true"></div>
+        </div>
+      </article>
+
+      <!-- ChatGPT -->
+      <article class="card" id="card-chatgpt">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><defs><linearGradient id="gptGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2F5BEA"/></linearGradient></defs><rect width="24" height="24" rx="5" fill="url(#gptGrad)"/><g fill="#fff"><circle cx="16.6" cy="12" r="3"/><circle cx="14.3" cy="15.98" r="3"/><circle cx="9.7" cy="15.98" r="3"/><circle cx="7.4" cy="12" r="3"/><circle cx="9.7" cy="8.02" r="3"/><circle cx="14.3" cy="8.02" r="3"/><circle cx="12" cy="12" r="3"/></g><g stroke="#3B5BE8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"><polyline points="9.2,9.4 11.6,12 9.2,14.6"/><line x1="13" y1="14.7" x2="16.2" y2="14.7"/></g></svg>
+            </span>
+            <h2 class="title">ChatGPT usage</h2>
+          </div>
+          <span class="header-right">
+            <span class="plan" id="chatgpt-plan"></span>
+            <span class="live-dot" data-live="chatgpt">--</span>
+          </span>
+        </header>
+
+        <div class="expired-banner" id="chatgpt-expiredBanner">
+          <p class="expired-title">Token expired</p>
+          <p class="expired-body">Update the <code>bearer</code> in <code>credentials/chatgpt.json</code> and refresh.</p>
+        </div>
+
+        <div class="hero" id="chatgpt-hero">
+          <div class="hero-line">
+            <output id="chatgpt-weeklyPct">--%</output>
+            <span class="name">Weekly limit</span>
+            <span class="reset" id="chatgpt-weeklyReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="chatgpt-weeklyRail" aria-hidden="true"></div>
+        </div>
+      </article>
+
+      <!-- MiniMax -->
+      <article class="card" id="card-minimax">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#EA3F45"/><g fill="#fff"><rect x="4.5" y="9" width="1.7" height="6" rx="0.85"/><rect x="6.72" y="7" width="1.7" height="10" rx="0.85"/><rect x="8.93" y="5.25" width="1.7" height="13.5" rx="0.85"/><rect x="11.15" y="8" width="1.7" height="8" rx="0.85"/><rect x="13.37" y="5.25" width="1.7" height="13.5" rx="0.85"/><rect x="15.58" y="7" width="1.7" height="10" rx="0.85"/><rect x="17.8" y="9" width="1.7" height="6" rx="0.85"/></g></svg>
+            </span>
+            <h2 class="title">MiniMax quota</h2>
+          </div>
+          <span class="live-dot" data-live="minimax">--</span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="minimax-weeklyPct">--%</output>
+            <span class="name">Weekly usage</span>
+            <span class="reset" id="minimax-weeklyReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="minimax-weeklyRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">Current window</span>
+            <span class="val" id="minimax-windowPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="minimax-windowRail" aria-hidden="true"></div>
+          <span class="row-sub" id="minimax-windowReset"></span>
+        </div>
+      </article>
+
+    </div>
+  </div>
+  <script src="/app.js"></script>
+  <script src="/layout.js"></script>
+</body>
+</html>

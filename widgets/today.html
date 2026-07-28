@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today</title>
+<style>
+  /* ---- Daimon host-control safe zone (conversation + Canvas) ---- */
+  :root {
+    --daimon-widget-host-safe-inline-end: 190px;
+    --daimon-widget-host-safe-block-start: 44px;
+  }
+  .kimi-host-safe-context { container-type: inline-size; }
+  .kimi-host-safe-header {
+    box-sizing: border-box;
+    min-block-size: var(--daimon-widget-host-safe-block-start, 44px);
+    padding-inline-end: var(--daimon-widget-host-safe-inline-end, 190px);
+  }
+  @container (max-width: 419px) {
+    .kimi-host-safe-header {
+      min-block-size: 0;
+      padding-block-start: var(--daimon-widget-host-safe-block-start, 44px);
+      padding-inline-end: 0;
+    }
+  }
+
+  /* ---- kimi-fit: semantic region contract ---- */
+  [data-kimi-root] { box-sizing: border-box; inline-size: 100%; min-inline-size: 0; max-inline-size: 100%; overflow: visible; }
+  [data-kimi-root] * { box-sizing: border-box; min-inline-size: 0; }
+  html[data-daimon-size-tier="compact"] [data-kimi-priority="p1"],
+  html[data-daimon-size-tier="compact"] [data-kimi-priority="p2"],
+  html[data-daimon-size-tier="compact"] [data-kimi-priority="p3"] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { [data-kimi-root] * { scroll-behavior: auto; } }
+
+  html, body { height: 100%; margin: 0; padding: 0; background: transparent; }
+  body {
+    position: relative;
+    font-family: var(--kimi-font-sans);
+    color: var(--kimi-color-text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Pixel stage: bounded decorative background layer only ---- */
+  [data-kimi-pixel-stage] {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    color: var(--kimi-color-text-tertiary);
+  }
+  [data-kimi-pixel-background] { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  [data-kimi-pixel-background] > canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+  html[data-daimon-size-tier="compact"] [data-kimi-pixel-background] { opacity: 0.5; }
+
+  /* ---- Content root ---- */
+  main.kimi-host-safe-context {
+    position: relative;
+    z-index: 1;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: 8px 22px 18px;
+  }
+  .kimi-host-safe-header { display: flex; align-items: flex-end; }
+
+  .overline {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--kimi-color-text-secondary);
+  }
+
+  /* ---- P0: current time + date ---- */
+  .now { display: flex; flex-direction: column; gap: 2px; }
+  .now output {
+    display: block;
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .now .date {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--kimi-color-text-secondary);
+  }
+
+  /* ---- Progress rails (shared rail-block/rail-head styles, used by year progress) ---- */
+  .rail-block { display: flex; flex-direction: column; gap: 6px; max-width: 520px; }
+  .rail-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .rail-head .label { font-size: 12.5px; color: var(--kimi-color-text-secondary); }
+  .rail-head .value { font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--kimi-color-text-primary); font-weight: 500; }
+
+  /* ---- P2: week strip + meta ---- */
+  .week-block { display: flex; flex-direction: column; gap: 8px; }
+  .week { display: flex; gap: 6px; }
+  .week > b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--kimi-color-text-tertiary);
+    background: color-mix(in srgb, var(--kimi-color-text-primary) 7%, transparent);
+  }
+  .week > b.today { background: var(--kimi-color-accent); color: var(--kimi-color-on-accent); }
+  .meta {
+    margin: 0;
+    font-family: var(--kimi-font-mono);
+    font-size: 11px;
+    color: var(--kimi-color-text-tertiary);
+  }
+
+  /* ---- P3: year progress (Expanded only) ---- */
+  [data-kimi-priority="p3"] { display: none; }
+  html[data-daimon-size-tier="expanded"] [data-kimi-priority="p3"] { display: flex; }
+  .year-track { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--kimi-color-text-primary) 10%, transparent); max-width: 520px; }
+  .year-fill { height: 100%; border-radius: 3px; background: var(--kimi-color-accent); width: 0; }
+
+  /* ---- Tier + width adaptation ---- */
+  html[data-daimon-size-tier="compact"] main.kimi-host-safe-context { padding: 12px 16px; gap: 6px; }
+  html[data-daimon-size-tier="compact"] .now output { font-size: 34px; }
+  html[data-daimon-size-tier="compact"] .now .date { font-size: 12.5px; }
+  html[data-daimon-size-tier="expanded"] .now output { font-size: 56px; }
+  html[data-daimon-size-tier="expanded"] main.kimi-host-safe-context { gap: 20px; padding: 8px 30px 24px; }
+  @media (max-width: 299px) {
+    .now output { font-size: 30px; }
+    .now .date { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+  <div data-kimi-pixel-stage aria-hidden="true">
+    <div data-kimi-pixel-background></div>
+  </div>
+
+  <main class="kimi-host-safe-context" data-kimi-root>
+    <header class="kimi-host-safe-header" data-kimi-priority="p1">
+      <p class="overline" id="greeting">Hello</p>
+    </header>
+
+    <div class="now" data-kimi-priority="p0" role="group" aria-label="Current time and date">
+      <output id="time" aria-label="Current time">--:--</output>
+      <p class="date" id="date">Loading date</p>
+    </div>
+
+    <div class="week-block" data-kimi-priority="p2">
+      <div class="week" id="week" aria-label="This week"></div>
+      <p class="meta" id="meta">--</p>
+    </div>
+
+    <div class="rail-block" data-kimi-priority="p3" aria-label="Year progress">
+      <div class="rail-head">
+        <span class="label" id="yearLabel">Year</span>
+        <span class="value" id="yearPct">--%</span>
+      </div>
+      <div class="year-track"><div class="year-fill" id="yearFill"></div></div>
+    </div>
+  </main>
+
+<script>
+/* ---- KimiPixelField renderer (inlined, dependency-free) ---- */
+(function (global) {
+  'use strict';
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function seeded(seed) {
+    let state = (Number(seed) || 1) >>> 0;
+    return function next() { state = (state * 1664525 + 1013904223) >>> 0; return state / 4294967296; };
+  }
+  function densityAt(mode, x, y, config) {
+    if (mode === 'contour') { const curve = 0.5 + Math.sin(x * Math.PI * 2) * 0.16; return clamp(1 - Math.abs(y - curve) * 7, 0, 1); }
+    if (mode === 'directional') {
+      const angle = (Number(config.flowAngleDeg) || 0) * Math.PI / 180;
+      const dx = x - 0.5, dy = y - 0.5;
+      const along = dx * Math.cos(angle) + dy * Math.sin(angle);
+      const across = -dx * Math.sin(angle) + dy * Math.cos(angle);
+      const lane = 1 - Math.abs(across) * 4.4;
+      return clamp(lane * 0.72 + (along + 0.7) * 0.2, 0, 1);
+    }
+    if (mode === 'atmosphere') { const dx = x - 0.72, dy = y - 0.42; return clamp(1 - Math.sqrt(dx * dx + dy * dy) * 2.1, 0, 1); }
+    return clamp(0.12 + x * 0.88, 0, 1);
+  }
+  function mount(container, options) {
+    if (!container || typeof container.appendChild !== 'function') throw new TypeError('KimiPixelField.mount requires a container element');
+    const config = Object.assign({ mode: 'density', mark: 'ascii', seed: 7, spacing: 14, opacity: 0.42, pointer: true, pointerTarget: null, pointerRadius: 96, pointerStrength: 14, pointerMode: 'repel', flowAngleDeg: 0, driftSpeed: 0, variance: 0.34, tier: 'regular', characters: '.:+*#' }, options || {});
+    const pointerTarget = config.pointerTarget && typeof config.pointerTarget.addEventListener === 'function' ? config.pointerTarget : container;
+    const compact = config.tier === 'compact';
+    const canvas = (container.ownerDocument || global.document).createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('KimiPixelField requires Canvas 2D');
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.dataset.kimiPixelField = config.mode;
+    Object.assign(canvas.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '0' });
+    container.appendChild(canvas);
+    const media = typeof global.matchMedia === 'function' ? global.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: function () {}, removeEventListener: function () {} };
+    const reduced = compact || media.matches;
+    let marks = [], pointer = null, frame = 0, visible = true, destroyed = false;
+    function dimensions() { const rect = container.getBoundingClientRect(); return { width: Math.max(1, rect.width), height: Math.max(1, rect.height) }; }
+    function rebuild() {
+      const size = dimensions();
+      const ratio = Math.min(global.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(size.width * ratio);
+      canvas.height = Math.round(size.height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const gap = Math.max(8, Number(config.spacing) || 14) * (compact ? 1.7 : 1);
+      const variance = clamp(Number.isFinite(Number(config.variance)) ? Number(config.variance) : 0.34, 0, 0.9);
+      const random = seeded(config.seed);
+      const next = [];
+      for (let y = gap / 2; y < size.height; y += gap) {
+        for (let x = gap / 2; x < size.width; x += gap) {
+          const nx = x / size.width, ny = y / size.height;
+          const density = densityAt(config.mode, nx, ny, config);
+          if (random() > density * (compact ? 0.46 : 0.84)) continue;
+          next.push({ x: x + (random() - 0.5) * gap * variance, y: y + (random() - 0.5) * gap * variance, density, jitter: random() });
+        }
+      }
+      marks = next;
+      draw();
+    }
+    function drawMark(mark, x, y) {
+      const alpha = clamp(config.opacity * (0.34 + mark.density * 0.66), 0.04, 0.78);
+      context.globalAlpha = alpha;
+      const radius = 1.25 + mark.density * 1.9;
+      if (config.mark === 'ascii') {
+        const chars = String(config.characters || '.:+*#');
+        context.font = Math.round(7 + mark.density * 4) + 'px monospace';
+        context.fillText(chars[Math.min(chars.length - 1, Math.floor(mark.density * chars.length))], x, y);
+      } else if (config.mark === 'square') { context.fillRect(x - radius, y - radius, radius * 2, radius * 2); }
+      else if (config.mark === 'cell') { context.strokeRect(x - radius, y - radius, radius * 2, radius * 2); }
+      else { context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); }
+    }
+    function draw(timestamp) {
+      if (destroyed || !visible) return;
+      const size = dimensions();
+      context.clearRect(0, 0, size.width, size.height);
+      const color = config.color || global.getComputedStyle(container).color;
+      context.fillStyle = color;
+      context.strokeStyle = color;
+      const flowAngle = (Number(config.flowAngleDeg) || 0) * Math.PI / 180;
+      const driftDistance = reduced ? 0 : ((Number(timestamp) || 0) / 1000) * (Number(config.driftSpeed) || 0);
+      for (const mark of marks) {
+        let x = mark.x + Math.cos(flowAngle) * driftDistance;
+        let y = mark.y + Math.sin(flowAngle) * driftDistance;
+        x = ((x % size.width) + size.width) % size.width;
+        y = ((y % size.height) + size.height) % size.height;
+        if (pointer && !reduced) {
+          const dx = x - pointer.x, dy = y - pointer.y;
+          const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+          if (distance < config.pointerRadius) {
+            const force = (1 - distance / config.pointerRadius) * config.pointerStrength;
+            const direction = config.pointerMode === 'attract' ? -1 : 1;
+            x += dx / distance * force * direction;
+            y += dy / distance * force * direction;
+          }
+        }
+        drawMark(mark, x, y);
+      }
+      context.globalAlpha = 1;
+    }
+    function animate(timestamp) {
+      frame = 0;
+      draw(timestamp);
+      if (!destroyed && visible && !reduced && Number(config.driftSpeed)) frame = global.requestAnimationFrame(animate);
+    }
+    function requestDraw() { if (!frame) frame = global.requestAnimationFrame(animate); }
+    function onPointer(event) {
+      if (!config.pointer || reduced) return;
+      const rect = container.getBoundingClientRect();
+      pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      requestDraw();
+    }
+    function onLeave() { pointer = null; if (Number(config.driftSpeed) && !reduced) requestDraw(); else draw(); }
+    const Resize = global.ResizeObserver;
+    const resizeObserver = Resize ? new Resize(rebuild) : null;
+    resizeObserver && resizeObserver.observe(container);
+    const Intersection = global.IntersectionObserver;
+    const visibilityObserver = Intersection ? new Intersection(function (entries) {
+      visible = entries[0] ? entries[0].isIntersecting : true;
+      if (visible) { draw(); if (Number(config.driftSpeed) && !reduced) requestDraw(); }
+    }) : null;
+    visibilityObserver && visibilityObserver.observe(container);
+    pointerTarget.addEventListener('pointermove', onPointer, { passive: true });
+    pointerTarget.addEventListener('pointerleave', onLeave, { passive: true });
+    rebuild();
+    if (Number(config.driftSpeed) && !reduced) requestDraw();
+    return {
+      canvas: canvas, render: draw, resize: rebuild,
+      destroy: function () {
+        destroyed = true;
+        if (frame) global.cancelAnimationFrame(frame);
+        resizeObserver && resizeObserver.disconnect();
+        visibilityObserver && visibilityObserver.disconnect();
+        pointerTarget.removeEventListener('pointermove', onPointer);
+        pointerTarget.removeEventListener('pointerleave', onLeave);
+        canvas.remove();
+      }
+    };
+  }
+  global.KimiPixelField = { mount: mount };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<script>
+/* ---- Today widget logic (idempotent, self-contained) ---- */
+(function () {
+  'use strict';
+  if (window.__todayBoot) return;
+  window.__todayBoot = true;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var timeEl = $('time'), dateEl = $('date'), greetingEl = $('greeting'),
+      weekEl = $('week'),
+      metaEl = $('meta'), yearLabelEl = $('yearLabel'), yearPctEl = $('yearPct'),
+      yearFillEl = $('yearFill');
+
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var WEEK_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  /* Build week strip once. */
+  var dayCells = [];
+  for (var d = 0; d < 7; d++) {
+    var b = document.createElement('b');
+    b.textContent = WEEK_LETTERS[d];
+    weekEl.appendChild(b);
+    dayCells.push(b);
+  }
+
+  function dayOfYear(now) {
+    return Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(now.getFullYear(), 0, 1)) / 864e5) + 1;
+  }
+  function isoWeek(now) {
+    var t = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    var day = (t.getUTCDay() + 6) % 7;
+    t.setUTCDate(t.getUTCDate() - day + 3);
+    var first = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+    var fd = (first.getUTCDay() + 6) % 7;
+    first.setUTCDate(first.getUTCDate() - fd + 3);
+    return 1 + Math.round((t - first) / 6048e5);
+  }
+  function daysInYear(y) { return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365; }
+
+  /* Semantic pixel field: sun-path orientation derived from time of day. */
+  var field = null;
+  function mountField() {
+    var minutes = new Date().getHours() * 60 + new Date().getMinutes();
+    var tier = document.documentElement.getAttribute('data-daimon-size-tier') || 'regular';
+    if (field) { field.destroy(); field = null; }
+    field = window.KimiPixelField.mount(document.querySelector('[data-kimi-pixel-background]'), {
+      mode: 'directional',
+      mark: 'ascii',
+      seed: 11,
+      spacing: 16,
+      opacity: 0.42,
+      variance: 0.4,
+      flowAngleDeg: (minutes / 1440) * 180, /* midnight = horizontal, noon = vertical */
+      driftSpeed: 2.2,
+      pointer: true,
+      pointerTarget: document.body,
+      pointerMode: 'repel',
+      tier: tier === 'compact' ? 'compact' : 'regular',
+      characters: '.:+*#'
+    });
+  }
+
+  var lastMinute = -1;
+  function tick() {
+    var now = new Date();
+    var hh = now.getHours(), mm = now.getMinutes();
+    if (mm === lastMinute && timeEl.textContent !== '--:--') return;
+    lastMinute = mm;
+
+    timeEl.textContent = pad(hh) + ':' + pad(mm);
+    dateEl.textContent = WEEKDAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+    greetingEl.textContent =
+      hh < 5 ? 'Up late' : hh < 12 ? 'Good morning' : hh < 18 ? 'Good afternoon' : hh < 23 ? 'Good evening' : 'Good night';
+
+    /* Week strip (Mon = 0) */
+    var todayIdx = (now.getDay() + 6) % 7;
+    for (var w = 0; w < 7; w++) { dayCells[w].className = w === todayIdx ? 'today' : ''; }
+
+    /* Meta + year */
+    var doy = dayOfYear(now), diy = daysInYear(now.getFullYear());
+    metaEl.textContent = 'DAY ' + doy + ' · WEEK ' + isoWeek(now) + ' · ' + now.getFullYear();
+    var yp = Math.round((doy / diy) * 100);
+    yearLabelEl.textContent = 'Day ' + doy + ' of ' + diy;
+    yearPctEl.textContent = yp + '%';
+    yearFillEl.style.width = yp + '%';
+  }
+
+  mountField();
+  tick();
+  window.setInterval(tick, 1000);
+  window.setInterval(mountField, 10 * 60 * 1000); /* re-orient the sun-path field as the day turns */
+
+  if (window.DaimonWidget && typeof window.DaimonWidget.onThemeChange === 'function') {
+    window.DaimonWidget.onThemeChange(function () { if (field) field.render(); });
+  }
+})();
+</script>
+</body>
+</html>

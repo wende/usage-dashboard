@@ -1,0 +1,17 @@
+node_modules/
+credentials/*.json
+credentials/*.txt
+!credentials/*.template
+.DS_Store
+*.log
+.env
+.env.*
+
+# Never commit harvested secrets (if dropped in-repo by mistake)
+kimi-token.txt
+**/claude.json
+**/cursor.json
+**/chatgpt.json
+**/minimax.json
+!.cursor/**
+!credentials/*.template
