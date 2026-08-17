@@ -135,7 +135,6 @@ public/                # single-page dashboard
 credentials/           # templates only (gitignored secrets)
 .cursor/skills/        # agent skill for refetching credentials
 ubersicht/             # macOS desktop widget (Übersicht)
-widgets/               # original Kimi Canvas widgets (reference)
 automations/           # original Python automations (reference)
 ```
 
@@ -146,4 +145,4 @@ The same cards can render straight onto the desktop via
 [`ubersicht/README.md`](ubersicht/README.md). It reads the same `/api/status`
 endpoint, so the server needs to be running either way.
 
-The `widgets/` and `automations/` folders are kept as the original Kimi Canvas migration pack. The runnable app is the Node server + `public/` page.
+The `automations/` folder is kept as the original Kimi Canvas migration pack. The runnable app is the Node server + `public/` page.

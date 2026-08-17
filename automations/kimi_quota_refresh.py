@@ -9,7 +9,8 @@ import base64
 import json
 import os
 import urllib.request
-from datetime import datetime
+from calendar import monthrange
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 TOKEN_PATH = "/Users/wende/Documents/kimi/workspace/.kimi-quota/token.txt"
@@ -78,6 +79,30 @@ def parse_ts(iso):
     return datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(LOCAL_TZ)
 
 
+def to_iso(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def infer_start(reset_dt, period="weekly"):
+    if not reset_dt:
+        return None
+    if period == "monthly":
+        month = reset_dt.month - 1 or 12
+        year = reset_dt.year if reset_dt.month > 1 else reset_dt.year - 1
+        day = min(reset_dt.day, monthrange(year, month)[1])
+        return reset_dt.replace(year=year, month=month, day=day)
+    return reset_dt - timedelta(days=7)
+
+
+def window_meta(reset_dt, start_dt=None, period="weekly"):
+    start = start_dt or infer_start(reset_dt, period)
+    return {"resetAt": to_iso(reset_dt), "startAt": to_iso(start)}
+
+
 def run(ctx):
     token = read_token()
     data = call_api(token)
@@ -108,6 +133,7 @@ def run(ctx):
         "total": {
             "pct": pct(balance.get("amountUsedRatio")),
             "reset": "resets " + (total_reset.strftime("%Y-%m-%d") if total_reset else "unknown"),
+            **window_meta(total_reset, period="monthly"),
         },
         "fiveHour": {
             "pct": pct(five.get("ratio")),
@@ -116,6 +142,7 @@ def run(ctx):
         "sevenDay": {
             "pct": pct(seven.get("ratio")),
             "reset": "resets " + (seven_reset.strftime("%m-%d %H:%M") if seven_reset else "unknown"),
+            **window_meta(seven_reset, period="weekly"),
         },
         "gifts": gifts,
         "tokenExpires": token_expiry(token),

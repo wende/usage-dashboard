@@ -4,7 +4,7 @@ import base64
 import json
 import os
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 CRED_PATH = "/Users/wende/Documents/kimi/workspace/.quota-watch/chatgpt.json"
@@ -61,15 +61,23 @@ def run(ctx):
     rate = data.get("rate_limit") or {}
     primary = rate.get("primary_window") or {}
     reset_at = primary.get("reset_at")
-    reset_dt = (datetime.fromtimestamp(reset_at, tz=LOCAL_TZ).strftime("%Y-%m-%d %H:%M")
-                if reset_at else "unknown")
+    reset_dt = datetime.fromtimestamp(reset_at, tz=LOCAL_TZ) if reset_at else None
+    reset_label = reset_dt.strftime("%Y-%m-%d %H:%M") if reset_dt else "unknown"
+    start_dt = (reset_dt - timedelta(days=7)) if reset_dt else None
+
+    def to_iso(dt):
+        if not dt:
+            return None
+        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
     now = datetime.now(LOCAL_TZ)
     artifact = {
         "asof": now.strftime("%Y-%m-%d %H:%M"),
         "weekly": {
             "pct": round(float(primary.get("used_percent") or 0), 2),
-            "reset": "resets " + reset_dt,
+            "reset": "resets " + reset_label,
+            "resetAt": to_iso(reset_dt),
+            "startAt": to_iso(start_dt),
         },
         "plan": (data.get("plan_type") or "unknown").capitalize(),
         "tokenExpires": jwt_expiry(token),

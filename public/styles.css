@@ -292,12 +292,21 @@ html, body {
   background: color-mix(in srgb, var(--hot) 72%, transparent);
 }
 
+.pxrail > i.future {
+  align-self: center;
+  border-radius: 999px;
+}
+
 .pxrail.hero-rail {
   grid-template-columns: repeat(40, minmax(0, 1fr));
 }
 
 .pxrail.hero-rail > i {
   height: 15px;
+}
+
+.pxrail.hero-rail > i.future {
+  height: 6px;
 }
 
 .pxrail.sub-rail {
@@ -308,12 +317,24 @@ html, body {
   height: 9px;
 }
 
+.pxrail.sub-rail > i.future {
+  height: 5px;
+}
+
 .pxrail.mini-rail {
   grid-template-columns: repeat(40, minmax(0, 1fr));
 }
 
 .pxrail.mini-rail > i {
   height: 7px;
+}
+
+.pxrail.mini-rail > i.future {
+  height: 4px;
+}
+
+.pxrail.mini-rail > i.future {
+  height: 4px;
 }
 
 .row {

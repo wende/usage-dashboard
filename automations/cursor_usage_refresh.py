@@ -3,7 +3,7 @@
 import json
 import os
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 CRED_PATH = "/Users/wende/Documents/kimi/workspace/.quota-watch/cursor.json"
@@ -33,15 +33,23 @@ def run(ctx):
 
     def parse_dt(value):
         try:
-            return (datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-                    .astimezone(LOCAL_TZ).strftime("%Y-%m-%d"))
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         except Exception:
             return None
 
-    start = parse_dt(data.get("billingCycleStart"))
-    end = parse_dt(data.get("billingCycleEnd"))
+    def to_iso(dt):
+        if not dt:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    start_dt = parse_dt(data.get("billingCycleStart"))
+    end_dt = parse_dt(data.get("billingCycleEnd"))
     cycle = None
-    if start and end:
+    if start_dt and end_dt:
+        start = start_dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
+        end = end_dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
         cycle = f"cycle {start} -> {end}"
 
     now = datetime.now(LOCAL_TZ)
@@ -52,6 +60,8 @@ def run(ctx):
         "total": {
             "pct": round(float(total_pct or 0), 2),
             "label": "included usage",
+            "resetAt": to_iso(end_dt),
+            "startAt": to_iso(start_dt),
         },
         "api": {
             "pct": round(float(api_pct or 0), 2),

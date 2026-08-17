@@ -49,6 +49,7 @@ State handling:
 - provider with no payload yet → card stays visible with the error or a
   "Waiting for first refresh…" note
 - ChatGPT `tokenExpired` → red banner pointing at `chatgpt.json`
+- Grok `tokenExpired` → red banner pointing at `grok.json`
 
 Per-card refresh:
 

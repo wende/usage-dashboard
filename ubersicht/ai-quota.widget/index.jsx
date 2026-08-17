@@ -148,8 +148,11 @@ export const className = `
   .pxrail > i.fill { background: var(--rail-fill); }
   .pxrail > i.fill.warn { background: var(--warn); }
   .pxrail > i.fill.hot { background: var(--hot); }
+  .pxrail > i.future { align-self: center; border-radius: 999px; }
   .pxrail.hero-rail > i { height: 11px; }
+  .pxrail.hero-rail > i.future { height: 5px; }
   .pxrail.sub-rail > i { height: 7px; }
+  .pxrail.sub-rail > i.future { height: 4px; }
 
   .row { display: flex; flex-direction: column; gap: 4px; }
   .row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
@@ -191,6 +194,14 @@ const fmtPct = (p) => Math.round(Number(p || 0) * 100) / 100 + "%";
 
 const tone = (pct) => (pct >= 90 ? "hot" : pct >= 70 ? "warn" : "");
 
+function elapsedPct(window) {
+  if (!window || !window.resetAt || !window.startAt) return null;
+  const start = Date.parse(window.startAt);
+  const end = Date.parse(window.resetAt);
+  if (!isFinite(start) || !isFinite(end) || end <= start) return null;
+  return Math.max(0, Math.min(100, ((Date.now() - start) / (end - start)) * 100));
+}
+
 function fmtRefresh(asof) {
   if (!asof) return "--";
   const m = String(asof).match(/(\d{1,2}:\d{2})(?::\d{2})?/);
@@ -202,17 +213,34 @@ function fmtRefresh(asof) {
   return String(asof);
 }
 
-function Rail({ cells, pct, variant }) {
+function railCellClass(i, filled, fillClass, firstFuture) {
+  var name = i < filled ? fillClass : "";
+  if (firstFuture >= 0 && i >= firstFuture) {
+    name = name ? name + " future" : "future";
+  }
+  return name;
+}
+
+function Rail({ cells, pct, variant, pacePct }) {
   const value = clamp(pct);
   const filled = Math.round((cells * value) / 100);
-  const fillClass = `fill ${tone(value)}`.trim();
+  const fillClass = ("fill " + tone(value)).trim();
+  const firstFuture =
+    pacePct != null && isFinite(pacePct)
+      ? Math.round((cells * clamp(pacePct)) / 100)
+      : -1;
+  const title =
+    pacePct != null && isFinite(pacePct)
+      ? Math.round(pacePct) + "% of period elapsed"
+      : undefined;
   return (
     <div
-      className={`pxrail ${variant}`}
-      style={{ gridTemplateColumns: `repeat(${cells}, minmax(0, 1fr))` }}
+      className={"pxrail " + variant}
+      style={{ gridTemplateColumns: "repeat(" + cells + ", minmax(0, 1fr))" }}
+      title={title}
     >
       {Array.from({ length: cells }, (_, i) => (
-        <i key={i} className={i < filled ? fillClass : ""} />
+        <i key={i} className={railCellClass(i, filled, fillClass, firstFuture)} />
       ))}
     </div>
   );
@@ -290,7 +318,7 @@ function Header({ logo, title, entry, plan, name, dispatch }) {
   );
 }
 
-function Hero({ pct, name, reset, cells = 34 }) {
+function Hero({ pct, name, reset, cells = 34, pacePct }) {
   const value = clamp(pct);
   return (
     <div className="hero">
@@ -299,12 +327,12 @@ function Hero({ pct, name, reset, cells = 34 }) {
         <span className="name">{name}</span>
         {reset ? <span className="reset">{reset}</span> : null}
       </div>
-      <Rail cells={cells} pct={pct} variant="hero-rail" />
+      <Rail cells={cells} pct={pct} variant="hero-rail" pacePct={pacePct} />
     </div>
   );
 }
 
-function Row({ label, pct, reset, cells = 26 }) {
+function Row({ label, pct, reset, cells = 26, pacePct }) {
   const value = clamp(pct);
   return (
     <div className="row">
@@ -312,7 +340,7 @@ function Row({ label, pct, reset, cells = 26 }) {
         <span className="label">{label}</span>
         <span className={`val ${value >= 90 ? "hot" : ""}`}>{fmtPct(pct)}</span>
       </div>
-      <Rail cells={cells} pct={pct} variant="sub-rail" />
+      <Rail cells={cells} pct={pct} variant="sub-rail" pacePct={pacePct} />
       {reset ? <span className="row-sub">{reset}</span> : null}
     </div>
   );
@@ -417,6 +445,20 @@ const ChatgptLogo = (
   </svg>
 );
 
+const GrokLogo = (
+  <svg viewBox="0 0 24 24">
+    <rect width="24" height="24" rx="5" fill="#111" />
+    <text
+      x="12" y="16.5"
+      textAnchor="middle"
+      fontFamily="system-ui, sans-serif"
+      fontSize="13"
+      fontWeight="700"
+      fill="#fff"
+    >G</text>
+  </svg>
+);
+
 const MinimaxLogo = (
   <svg viewBox="0 0 24 24">
     <rect width="24" height="24" rx="5" fill="#EA3F45" />
@@ -434,121 +476,73 @@ const MinimaxLogo = (
 
 /* ---------- cards ---------- */
 
-function KimiCard({ entry, dispatch }) {
-  if (!entry) return null;
-  const d = entry.data;
-  if (!d) {
-    return (
-      <article className="card">
-        <Header logo={KimiLogo} title="Kimi quota" name="kimi" entry={entry} dispatch={dispatch} />
-        <NoData entry={entry} />
-      </article>
-    );
-  }
-  return (
-    <article className="card">
-      <Header logo={KimiLogo} title="Kimi quota" name="kimi" entry={entry} dispatch={dispatch} />
-      <Hero pct={d.total.pct} name="Total usage" reset={d.total.reset} />
-      <Row label="5-hour usage" pct={d.fiveHour.pct} reset={d.fiveHour.reset} />
-      <Row label="7-day usage" pct={d.sevenDay.pct} reset={d.sevenDay.reset} />
-      <ListSection
-        title="Gift usage"
-        items={d.gifts}
-        labelFn={(g) => `Gift · expires ${g.expires || "unknown"}`}
-      />
-    </article>
-  );
-}
+// Per-provider card config. Hero always shows pace; rows only with pace: true.
+const PROVIDERS = [
+  { name: "kimi", title: "Kimi quota", logo: KimiLogo,
+    hero: { key: "total", name: "Total usage" },
+    rows: [
+      { key: "fiveHour", label: "5-hour usage" },
+      { key: "sevenDay", label: "7-day usage", pace: true },
+    ],
+    list: { key: "gifts", title: "Gift usage",
+      labelFn: (g) => `Gift · expires ${g.expires || "unknown"}` } },
+  { name: "claude", title: "Claude usage", logo: ClaudeLogo,
+    hero: { key: "fiveHour", name: "5-hour session" },
+    rows: [{ key: "sevenDay", label: "7-day usage", pace: true }],
+    list: { key: "scoped", title: "Model limits · weekly", labelFn: (s) => s.name } },
+  { name: "cursor", title: "Cursor usage", logo: CursorLogo, plan: true,
+    hero: { key: "total", name: "Included usage", resetKey: "cycle" },
+    rows: [{ key: "api", label: "API usage (named model)" }] },
+  { name: "chatgpt", title: "ChatGPT usage", logo: ChatgptLogo, plan: true,
+    expired: { title: "Token expired",
+      body: <>Update <code>bearer</code> in <code>chatgpt.json</code> and refresh.</> },
+    hero: { key: "weekly", name: "Weekly limit" } },
+  { name: "grok", title: "Grok usage", logo: GrokLogo, plan: true,
+    expired: { title: "Session expired",
+      body: <>Update the <code>sso</code> cookie in <code>grok.json</code> and refresh.</> },
+    hero: { key: "weekly", name: "Weekly limit" } },
+  { name: "minimax", title: "MiniMax quota", logo: MinimaxLogo,
+    hero: { key: "weekly", name: "Weekly usage" },
+    rows: [{ key: "window", label: "Current window" }] },
+];
 
-function ClaudeCard({ entry, dispatch }) {
+function ProviderCard({ cfg, entry, dispatch }) {
   if (!entry) return null;
   const d = entry.data;
   if (!d) {
     return (
       <article className="card">
-        <Header logo={ClaudeLogo} title="Claude usage" name="claude" entry={entry} dispatch={dispatch} />
+        <Header logo={cfg.logo} title={cfg.title} name={cfg.name} entry={entry} dispatch={dispatch} />
         <NoData entry={entry} />
       </article>
     );
   }
-  return (
-    <article className="card">
-      <Header logo={ClaudeLogo} title="Claude usage" name="claude" entry={entry} dispatch={dispatch} />
-      <Hero pct={d.fiveHour.pct} name="5-hour session" reset={d.fiveHour.reset} />
-      <Row label="7-day usage" pct={d.sevenDay.pct} reset={d.sevenDay.reset} />
-      <ListSection title="Model limits · weekly" items={d.scoped} labelFn={(s) => s.name} />
-    </article>
-  );
-}
-
-function CursorCard({ entry, dispatch }) {
-  if (!entry) return null;
-  const d = entry.data;
-  if (!d) {
+  if (cfg.expired && d.tokenExpired) {
     return (
       <article className="card">
-        <Header logo={CursorLogo} title="Cursor usage" name="cursor" entry={entry} dispatch={dispatch} />
-        <NoData entry={entry} />
-      </article>
-    );
-  }
-  return (
-    <article className="card">
-      <Header logo={CursorLogo} title="Cursor usage" name="cursor" entry={entry} plan={d.plan} dispatch={dispatch} />
-      <Hero pct={d.total.pct} name="Included usage" reset={d.cycle} />
-      <Row label="API usage (named model)" pct={d.api.pct} />
-    </article>
-  );
-}
-
-function ChatgptCard({ entry, dispatch }) {
-  if (!entry) return null;
-  const d = entry.data;
-  if (!d) {
-    return (
-      <article className="card">
-        <Header logo={ChatgptLogo} title="ChatGPT usage" name="chatgpt" entry={entry} dispatch={dispatch} />
-        <NoData entry={entry} />
-      </article>
-    );
-  }
-  if (d.tokenExpired) {
-    return (
-      <article className="card">
-        <Header logo={ChatgptLogo} title="ChatGPT usage" name="chatgpt" entry={{ status: "stale" }} dispatch={dispatch} />
+        <Header logo={cfg.logo} title={cfg.title} name={cfg.name} entry={{ status: "stale" }} dispatch={dispatch} />
         <div className="banner">
-          <p className="banner-title">Token expired</p>
-          <p className="banner-body">
-            Update <code>bearer</code> in <code>chatgpt.json</code> and refresh.
-          </p>
+          <p className="banner-title">{cfg.expired.title}</p>
+          <p className="banner-body">{cfg.expired.body}</p>
         </div>
       </article>
     );
   }
+  const heroWindow = d[cfg.hero.key];
   return (
     <article className="card">
-      <Header logo={ChatgptLogo} title="ChatGPT usage" name="chatgpt" entry={entry} plan={d.plan} dispatch={dispatch} />
-      <Hero pct={d.weekly.pct} name="Weekly limit" reset={d.weekly.reset} />
-    </article>
-  );
-}
-
-function MinimaxCard({ entry, dispatch }) {
-  if (!entry) return null;
-  const d = entry.data;
-  if (!d) {
-    return (
-      <article className="card">
-        <Header logo={MinimaxLogo} title="MiniMax quota" name="minimax" entry={entry} dispatch={dispatch} />
-        <NoData entry={entry} />
-      </article>
-    );
-  }
-  return (
-    <article className="card">
-      <Header logo={MinimaxLogo} title="MiniMax quota" name="minimax" entry={entry} dispatch={dispatch} />
-      <Hero pct={d.weekly.pct} name="Weekly usage" reset={d.weekly.reset} />
-      <Row label="Current window" pct={d.window.pct} reset={d.window.reset} />
+      <Header logo={cfg.logo} title={cfg.title} name={cfg.name} entry={entry}
+        plan={cfg.plan ? d.plan : null} dispatch={dispatch} />
+      <Hero pct={heroWindow.pct} name={cfg.hero.name}
+        reset={cfg.hero.resetKey ? d[cfg.hero.resetKey] : heroWindow.reset}
+        pacePct={elapsedPct(heroWindow)} />
+      {(cfg.rows || []).map((r) => (
+        <Row key={r.key} label={r.label} pct={d[r.key].pct} reset={d[r.key].reset}
+          pacePct={r.pace ? elapsedPct(d[r.key]) : undefined} />
+      ))}
+      {cfg.list && (
+        <ListSection title={cfg.list.title} items={d[cfg.list.key]} labelFn={cfg.list.labelFn} />
+      )}
     </article>
   );
 }
@@ -586,11 +580,9 @@ export const render = ({ output, error }, dispatch) => {
 
   return (
     <div className="stack">
-      <KimiCard entry={p.kimi} dispatch={dispatch} />
-      <ClaudeCard entry={p.claude} dispatch={dispatch} />
-      <CursorCard entry={p.cursor} dispatch={dispatch} />
-      <ChatgptCard entry={p.chatgpt} dispatch={dispatch} />
-      <MinimaxCard entry={p.minimax} dispatch={dispatch} />
+      {PROVIDERS.map((cfg) => (
+        <ProviderCard key={cfg.name} cfg={cfg} entry={p[cfg.name]} dispatch={dispatch} />
+      ))}
     </div>
   );
 };

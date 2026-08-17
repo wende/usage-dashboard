@@ -3,7 +3,7 @@
 import json
 import os
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 CRED_PATH = "/Users/wende/Documents/kimi/workspace/.quota-watch/claude.json"
@@ -20,6 +20,24 @@ def parse_ts(iso):
 
 def fmt_reset(ts, pattern):
     return "resets " + (ts.strftime(pattern) if ts else "unknown")
+
+
+def to_iso(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def window_meta(reset_dt, hours=None, days=7):
+    if not reset_dt:
+        start = None
+    elif hours is not None:
+        start = reset_dt - timedelta(hours=hours)
+    else:
+        start = reset_dt - timedelta(days=days)
+    return {"resetAt": to_iso(reset_dt), "startAt": to_iso(start)}
 
 
 def run(ctx):
@@ -56,10 +74,12 @@ def run(ctx):
         "fiveHour": {
             "pct": round(float(five.get("utilization") or 0), 2),
             "reset": fmt_reset(five_reset, "%m-%d %H:%M"),
+            **window_meta(five_reset, hours=5),
         },
         "sevenDay": {
             "pct": round(float(seven.get("utilization") or 0), 2),
             "reset": fmt_reset(seven_reset, "%Y-%m-%d"),
+            **window_meta(seven_reset, days=7),
         },
         "scoped": scoped,
         "tokenExpires": "session",

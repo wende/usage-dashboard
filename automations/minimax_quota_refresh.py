@@ -4,7 +4,7 @@ import base64
 import json
 import os
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 CRED_PATH = "/Users/wende/Documents/kimi/workspace/.quota-watch/minimax.json"
@@ -60,12 +60,23 @@ def run(ctx):
     if not general:
         raise RuntimeError(f"no model quota in response: {json.dumps(data)[:200]}")
 
+    def to_iso(ms):
+        if not ms:
+            return None
+        dt = datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc)
+        return dt.isoformat().replace("+00:00", "Z")
+
+    weekly_end_ms = general.get("weekly_end_time")
+    weekly_start_ms = (int(weekly_end_ms) - 7 * 24 * 60 * 60 * 1000) if weekly_end_ms else None
+
     now = datetime.now(LOCAL_TZ)
     artifact = {
         "asof": now.strftime("%Y-%m-%d %H:%M"),
         "weekly": {
             "pct": parse_pct(general.get("current_weekly_used_percent")),
             "reset": "resets " + fmt_ms(general.get("weekly_end_time"), "%Y-%m-%d"),
+            "resetAt": to_iso(weekly_end_ms),
+            "startAt": to_iso(weekly_start_ms),
         },
         "window": {
             "pct": parse_pct(general.get("current_interval_used_percent")),

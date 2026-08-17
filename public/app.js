@@ -13,13 +13,32 @@
     for (var i = 0; i < cells; i++) el.appendChild(document.createElement("i"));
   }
 
-  function paintRail(el, cells, pct) {
+  function elapsedPct(window) {
+    if (!window || !window.resetAt || !window.startAt) return null;
+    var start = Date.parse(window.startAt);
+    var end = Date.parse(window.resetAt);
+    if (!isFinite(start) || !isFinite(end) || end <= start) return null;
+    return Math.max(0, Math.min(100, ((Date.now() - start) / (end - start)) * 100));
+  }
+
+  function paintRail(el, cells, pct, pacePct) {
     if (!el) return;
     buildRail(el, cells);
     var filled = Math.round((cells * Math.max(0, Math.min(100, pct))) / 100);
     var cls = pct >= 90 ? "fill hot" : pct >= 70 ? "fill warn" : "fill";
+    var firstFuture = -1;
+    if (pacePct != null && isFinite(pacePct)) {
+      firstFuture = Math.round((cells * Math.max(0, Math.min(100, pacePct))) / 100);
+    }
     for (var i = 0; i < cells; i++) {
-      el.children[i].className = i < filled ? cls : "";
+      var name = i < filled ? cls : "";
+      if (firstFuture >= 0 && i >= firstFuture) name = (name ? name + " " : "") + "future";
+      el.children[i].className = name;
+    }
+    if (pacePct != null && isFinite(pacePct)) {
+      el.title = Math.round(pacePct) + "% of period elapsed";
+    } else {
+      el.removeAttribute("title");
     }
   }
 
@@ -99,119 +118,82 @@
     });
   }
 
-  function renderKimi(entry) {
-    var d = entry && entry.data;
-    setLive("kimi", entry && entry.status, d && d.asof);
-    if (!d) return;
-    paintRail($("kimi-totalRail"), 40, d.total.pct);
-    $("kimi-totalPct").textContent = fmtPct(d.total.pct);
-    $("kimi-totalReset").textContent = d.total.reset || "";
-    paintRail($("kimi-fiveRail"), 28, d.fiveHour.pct);
-    $("kimi-fivePct").textContent = fmtPct(d.fiveHour.pct);
-    $("kimi-fiveReset").textContent = d.fiveHour.reset || "";
-    paintRail($("kimi-sevenRail"), 28, d.sevenDay.pct);
-    $("kimi-sevenPct").textContent = fmtPct(d.sevenDay.pct);
-    $("kimi-sevenReset").textContent = d.sevenDay.reset || "";
-    renderList("kimi-giftWrap", "kimi-giftSection", d.gifts, function (g) {
-      return "Gift · expires " + (g.expires || "unknown");
-    });
+  // Per-provider card config. DOM id convention: <name>-<id>Rail|Pct|Reset.
+  // Hero rows always show pace; sub-rows only with pace: true.
+  var PROVIDERS = [
+    { name: "kimi",
+      hero: { key: "total", id: "total", cells: 40 },
+      rows: [
+        { key: "fiveHour", id: "five", cells: 28 },
+        { key: "sevenDay", id: "seven", cells: 28, pace: true },
+      ],
+      list: { key: "gifts", wrapId: "kimi-giftWrap", sectionId: "kimi-giftSection",
+        label: function (g) { return "Gift · expires " + (g.expires || "unknown"); } } },
+    { name: "claude",
+      hero: { key: "fiveHour", id: "five", cells: 40 },
+      rows: [{ key: "sevenDay", id: "seven", cells: 28, pace: true }],
+      list: { key: "scoped", wrapId: "claude-scopedWrap", sectionId: "claude-scopedSection",
+        label: function (s) { return s.name; } } },
+    { name: "cursor",
+      hero: { key: "total", id: "total", cells: 40, resetId: "cursor-cycle", resetKey: "cycle" },
+      rows: [{ key: "api", id: "api", cells: 40, hotPct: true }],
+      plan: true },
+    { name: "chatgpt",
+      hero: { key: "weekly", id: "weekly", cells: 40 },
+      plan: true, expired: true },
+    { name: "minimax",
+      hero: { key: "weekly", id: "weekly", cells: 40 },
+      rows: [{ key: "window", id: "window", cells: 28 }] },
+    { name: "grok",
+      hero: { key: "weekly", id: "weekly", cells: 40 },
+      plan: true, expired: true },
+  ];
+
+  function paintWindow(cfg, part, w, resetText) {
+    paintRail($(cfg.name + "-" + part.id + "Rail"), part.cells, w.pct,
+      part.pace || part === cfg.hero ? elapsedPct(w) : null);
+    var pctEl = $(cfg.name + "-" + part.id + "Pct");
+    pctEl.textContent = fmtPct(w.pct);
+    if (part.hotPct) pctEl.className = w.pct >= 90 ? "hot" : "";
+    var resetEl = $(part.resetId || cfg.name + "-" + part.id + "Reset");
+    if (resetEl) resetEl.textContent = resetText != null ? resetText : (w.reset || "");
   }
 
-  function renderClaude(entry) {
+  function renderProvider(cfg, entry) {
     var d = entry && entry.data;
-    setLive("claude", entry && entry.status, d && d.asof);
+    setLive(cfg.name, entry && entry.status, d && d.asof);
     if (!d) return;
-    paintRail($("claude-fiveRail"), 40, d.fiveHour.pct);
-    $("claude-fivePct").textContent = fmtPct(d.fiveHour.pct);
-    $("claude-fiveReset").textContent = d.fiveHour.reset || "";
-    paintRail($("claude-sevenRail"), 28, d.sevenDay.pct);
-    $("claude-sevenPct").textContent = fmtPct(d.sevenDay.pct);
-    $("claude-sevenReset").textContent = d.sevenDay.reset || "";
-    renderList("claude-scopedWrap", "claude-scopedSection", d.scoped, function (s) {
-      return s.name;
-    });
-  }
-
-  function renderCursor(entry) {
-    var d = entry && entry.data;
-    setLive("cursor", entry && entry.status, d && d.asof);
-    if (!d) return;
-    paintRail($("cursor-totalRail"), 40, d.total.pct);
-    $("cursor-totalPct").textContent = fmtPct(d.total.pct);
-    $("cursor-cycle").textContent = d.cycle || "";
-    paintRail($("cursor-apiRail"), 40, d.api.pct);
-    var apiOut = $("cursor-apiPct");
-    apiOut.textContent = fmtPct(d.api.pct);
-    apiOut.className = d.api.pct >= 90 ? "hot" : "";
-    $("cursor-plan").textContent = d.plan || "";
-  }
-
-  function renderChatgpt(entry) {
-    var d = entry && entry.data;
-    setLive("chatgpt", entry && entry.status, d && d.asof);
-    if (!d) return;
-    var expired = !!d.tokenExpired;
-    $("chatgpt-expiredBanner").classList.toggle("active", expired);
-    $("chatgpt-hero").style.display = expired ? "none" : "";
-    if (expired) {
-      $("chatgpt-plan").textContent = "";
-      var dot = document.querySelector('[data-live="chatgpt"]');
-      if (dot) {
-        dot.textContent = "expired";
-        dot.classList.add("err");
+    if (cfg.expired) {
+      var expired = !!d.tokenExpired;
+      $(cfg.name + "-expiredBanner").classList.toggle("active", expired);
+      $(cfg.name + "-hero").style.display = expired ? "none" : "";
+      if (expired) {
+        if (cfg.plan) $(cfg.name + "-plan").textContent = "";
+        var dot = document.querySelector('[data-live="' + cfg.name + '"]');
+        if (dot) {
+          dot.textContent = "expired";
+          dot.classList.add("err");
+        }
+        setRefreshBusy(cfg.name, false);
+        return;
       }
-      setRefreshBusy("chatgpt", false);
-      return;
     }
-    paintRail($("chatgpt-weeklyRail"), 40, d.weekly.pct);
-    $("chatgpt-weeklyPct").textContent = fmtPct(d.weekly.pct);
-    $("chatgpt-weeklyReset").textContent = d.weekly.reset || "";
-    $("chatgpt-plan").textContent = d.plan || "";
-  }
-
-  function renderMinimax(entry) {
-    var d = entry && entry.data;
-    setLive("minimax", entry && entry.status, d && d.asof);
-    if (!d) return;
-    paintRail($("minimax-weeklyRail"), 40, d.weekly.pct);
-    $("minimax-weeklyPct").textContent = fmtPct(d.weekly.pct);
-    $("minimax-weeklyReset").textContent = d.weekly.reset || "";
-    paintRail($("minimax-windowRail"), 28, d.window.pct);
-    $("minimax-windowPct").textContent = fmtPct(d.window.pct);
-    $("minimax-windowReset").textContent = d.window.reset || "";
-  }
-
-  function renderGrok(entry) {
-    var d = entry && entry.data;
-    setLive("grok", entry && entry.status, d && d.asof);
-    if (!d) return;
-    var expired = !!d.tokenExpired;
-    $("grok-expiredBanner").classList.toggle("active", expired);
-    $("grok-hero").style.display = expired ? "none" : "";
-    if (expired) {
-      $("grok-plan").textContent = "";
-      var dot = document.querySelector('[data-live="grok"]');
-      if (dot) {
-        dot.textContent = "expired";
-        dot.classList.add("err");
-      }
-      setRefreshBusy("grok", false);
-      return;
+    paintWindow(cfg, cfg.hero, d[cfg.hero.key],
+      cfg.hero.resetKey ? d[cfg.hero.resetKey] : undefined);
+    (cfg.rows || []).forEach(function (part) {
+      paintWindow(cfg, part, d[part.key]);
+    });
+    if (cfg.list) {
+      renderList(cfg.list.wrapId, cfg.list.sectionId, d[cfg.list.key], cfg.list.label);
     }
-    paintRail($("grok-weeklyRail"), 40, d.weekly.pct);
-    $("grok-weeklyPct").textContent = fmtPct(d.weekly.pct);
-    $("grok-weeklyReset").textContent = d.weekly.reset || "";
-    $("grok-plan").textContent = d.plan || "";
+    if (cfg.plan) $(cfg.name + "-plan").textContent = d.plan || "";
   }
 
   function renderAll(payload) {
     var p = (payload && payload.providers) || {};
-    renderKimi(p.kimi);
-    renderClaude(p.claude);
-    renderCursor(p.cursor);
-    renderChatgpt(p.chatgpt);
-    renderMinimax(p.minimax);
-    renderGrok(p.grok);
+    PROVIDERS.forEach(function (cfg) {
+      renderProvider(cfg, p[cfg.name]);
+    });
   }
 
   async function poll() {
@@ -267,13 +249,12 @@
   });
 
   // Empty rails as placeholders
-  ["kimi-totalRail", "claude-fiveRail", "cursor-totalRail", "chatgpt-weeklyRail", "minimax-weeklyRail", "grok-weeklyRail"].forEach(function (id) {
-    paintRail($(id), 40, 0);
+  PROVIDERS.forEach(function (cfg) {
+    paintRail($(cfg.name + "-" + cfg.hero.id + "Rail"), cfg.hero.cells, 0);
+    (cfg.rows || []).forEach(function (part) {
+      paintRail($(cfg.name + "-" + part.id + "Rail"), part.cells, 0);
+    });
   });
-  ["kimi-fiveRail", "kimi-sevenRail", "claude-sevenRail", "minimax-windowRail"].forEach(function (id) {
-    paintRail($(id), 28, 0);
-  });
-  paintRail($("cursor-apiRail"), 40, 0);
 
   poll();
   setInterval(poll, POLL_MS);
