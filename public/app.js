@@ -43,7 +43,7 @@
   }
 
   function fmtPct(p) {
-    return Math.round(Number(p || 0) * 100) / 100 + "%";
+    return Math.round(Number(p || 0) * 10) / 10 + "%";
   }
 
   function fmtRefresh(asof) {

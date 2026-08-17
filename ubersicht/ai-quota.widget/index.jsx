@@ -190,7 +190,7 @@ export const className = `
 
 const clamp = (n) => Math.max(0, Math.min(100, Number(n) || 0));
 
-const fmtPct = (p) => Math.round(Number(p || 0) * 100) / 100 + "%";
+const fmtPct = (p) => Math.round(Number(p || 0) * 10) / 10 + "%";
 
 const tone = (pct) => (pct >= 90 ? "hot" : pct >= 70 ? "warn" : "");
 
@@ -478,32 +478,32 @@ const MinimaxLogo = (
 
 // Per-provider card config. Hero always shows pace; rows only with pace: true.
 const PROVIDERS = [
-  { name: "kimi", title: "Kimi quota", logo: KimiLogo,
-    hero: { key: "total", name: "Total usage" },
+  { name: "kimi", title: "Kimi", logo: KimiLogo,
+    hero: { key: "total", name: "Monthly usage" },
     rows: [
       { key: "fiveHour", label: "5-hour usage" },
       { key: "sevenDay", label: "7-day usage", pace: true },
     ],
     list: { key: "gifts", title: "Gift usage",
       labelFn: (g) => `Gift · expires ${g.expires || "unknown"}` } },
-  { name: "claude", title: "Claude usage", logo: ClaudeLogo,
-    hero: { key: "fiveHour", name: "5-hour session" },
+  { name: "claude", title: "Claude", logo: ClaudeLogo,
+    hero: { key: "fiveHour", name: "5-hour usage" },
     rows: [{ key: "sevenDay", label: "7-day usage", pace: true }],
     list: { key: "scoped", title: "Model limits · weekly", labelFn: (s) => s.name } },
-  { name: "cursor", title: "Cursor usage", logo: CursorLogo, plan: true,
-    hero: { key: "total", name: "Included usage", resetKey: "cycle" },
-    rows: [{ key: "api", label: "API usage (named model)" }] },
-  { name: "chatgpt", title: "ChatGPT usage", logo: ChatgptLogo, plan: true,
+  { name: "cursor", title: "Cursor", logo: CursorLogo, plan: true,
+    hero: { key: "total", name: "Monthly usage", resetKey: "cycle" },
+    rows: [{ key: "api", label: "API usage" }] },
+  { name: "chatgpt", title: "ChatGPT", logo: ChatgptLogo, plan: true,
     expired: { title: "Token expired",
       body: <>Update <code>bearer</code> in <code>chatgpt.json</code> and refresh.</> },
-    hero: { key: "weekly", name: "Weekly limit" } },
-  { name: "grok", title: "Grok usage", logo: GrokLogo, plan: true,
+    hero: { key: "weekly", name: "Weekly usage" } },
+  { name: "grok", title: "Grok", logo: GrokLogo, plan: true,
     expired: { title: "Session expired",
       body: <>Update the <code>sso</code> cookie in <code>grok.json</code> and refresh.</> },
-    hero: { key: "weekly", name: "Weekly limit" } },
-  { name: "minimax", title: "MiniMax quota", logo: MinimaxLogo,
+    hero: { key: "weekly", name: "Weekly usage" } },
+  { name: "minimax", title: "MiniMax", logo: MinimaxLogo,
     hero: { key: "weekly", name: "Weekly usage" },
-    rows: [{ key: "window", label: "Current window" }] },
+    rows: [{ key: "window", label: "5-hour usage" }] },
 ];
 
 function ProviderCard({ cfg, entry, dispatch }) {
