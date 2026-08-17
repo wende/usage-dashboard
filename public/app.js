@@ -40,18 +40,32 @@
     return String(asof);
   }
 
+  function setRefreshBusy(name, busy) {
+    var btn = document.querySelector('[data-refresh="' + name + '"]');
+    if (!btn) return;
+    btn.disabled = !!busy;
+    btn.classList.toggle("is-busy", !!busy);
+  }
+
   function setLive(name, status, asof) {
     var dot = document.querySelector('[data-live="' + name + '"]');
     if (!dot) return;
     if (status === "running" || status === "pending") {
       dot.textContent = "refreshing";
       dot.classList.remove("err");
-    } else if (status === "error" || status === "degraded") {
+      setRefreshBusy(name, true);
+    } else if (status === "stale") {
       dot.textContent = "stale";
       dot.classList.add("err");
+      setRefreshBusy(name, false);
+    } else if (status === "error" || status === "degraded") {
+      dot.textContent = "error";
+      dot.classList.add("err");
+      setRefreshBusy(name, false);
     } else {
       dot.textContent = fmtRefresh(asof);
       dot.classList.remove("err");
+      setRefreshBusy(name, false);
     }
   }
 
@@ -146,6 +160,7 @@
         dot.textContent = "expired";
         dot.classList.add("err");
       }
+      setRefreshBusy("chatgpt", false);
       return;
     }
     paintRail($("chatgpt-weeklyRail"), 40, d.weekly.pct);
@@ -166,6 +181,29 @@
     $("minimax-windowReset").textContent = d.window.reset || "";
   }
 
+  function renderGrok(entry) {
+    var d = entry && entry.data;
+    setLive("grok", entry && entry.status, d && d.asof);
+    if (!d) return;
+    var expired = !!d.tokenExpired;
+    $("grok-expiredBanner").classList.toggle("active", expired);
+    $("grok-hero").style.display = expired ? "none" : "";
+    if (expired) {
+      $("grok-plan").textContent = "";
+      var dot = document.querySelector('[data-live="grok"]');
+      if (dot) {
+        dot.textContent = "expired";
+        dot.classList.add("err");
+      }
+      setRefreshBusy("grok", false);
+      return;
+    }
+    paintRail($("grok-weeklyRail"), 40, d.weekly.pct);
+    $("grok-weeklyPct").textContent = fmtPct(d.weekly.pct);
+    $("grok-weeklyReset").textContent = d.weekly.reset || "";
+    $("grok-plan").textContent = d.plan || "";
+  }
+
   function renderAll(payload) {
     var p = (payload && payload.providers) || {};
     renderKimi(p.kimi);
@@ -173,6 +211,7 @@
     renderCursor(p.cursor);
     renderChatgpt(p.chatgpt);
     renderMinimax(p.minimax);
+    renderGrok(p.grok);
   }
 
   async function poll() {
@@ -185,8 +224,50 @@
     }
   }
 
+  async function refreshProvider(name) {
+    if (!name) return;
+    setLive(name, "running");
+    try {
+      var res = await fetch("/api/refresh/" + encodeURIComponent(name), {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("refresh " + res.status);
+    } catch (err) {
+      console.error("refresh failed", err);
+      setRefreshBusy(name, false);
+      return;
+    }
+    var tries = 0;
+    while (tries < 40) {
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 400);
+      });
+      try {
+        var statusRes = await fetch("/api/status", { cache: "no-store" });
+        if (!statusRes.ok) {
+          tries++;
+          continue;
+        }
+        var payload = await statusRes.json();
+        renderAll(payload);
+        var entry = payload.providers && payload.providers[name];
+        if (entry && entry.status !== "running") break;
+      } catch (_) {}
+      tries++;
+    }
+  }
+
+  document.querySelectorAll("[data-refresh]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.disabled) return;
+      refreshProvider(btn.getAttribute("data-refresh"));
+    });
+  });
+
   // Empty rails as placeholders
-  ["kimi-totalRail", "claude-fiveRail", "cursor-totalRail", "chatgpt-weeklyRail", "minimax-weeklyRail"].forEach(function (id) {
+  ["kimi-totalRail", "claude-fiveRail", "cursor-totalRail", "chatgpt-weeklyRail", "minimax-weeklyRail", "grok-weeklyRail"].forEach(function (id) {
     paintRail($(id), 40, 0);
   });
   ["kimi-fiveRail", "kimi-sevenRail", "claude-sevenRail", "minimax-windowRail"].forEach(function (id) {

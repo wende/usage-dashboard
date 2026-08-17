@@ -1,6 +1,6 @@
 # Usage Dashboard
 
-Self-hostable single-page dashboard for Kimi, Claude, Cursor, ChatGPT, and MiniMax quota usage.
+Self-hostable single-page dashboard for Kimi, Claude, Cursor, ChatGPT, MiniMax, and Grok quota usage.
 
 ```
 +------------------+------------------+------------------+
@@ -26,6 +26,7 @@ Requires **Node.js 18+**.
 ~/.quota-watch/cursor.json
 ~/.quota-watch/chatgpt.json
 ~/.quota-watch/minimax.json
+~/.quota-watch/grok.json
 ```
 
 Templates live in [`credentials/`](credentials/). For how to obtain or refresh tokens (DevTools or browser automation), see the agent skill:
@@ -45,7 +46,8 @@ The server refreshes all providers every **15 minutes**, serves the dashboard fr
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/status` | GET | Cached provider payloads |
-| `/api/refresh` | POST | Trigger an immediate refresh |
+| `/api/refresh` | POST | Trigger an immediate refresh of all providers |
+| `/api/refresh/:provider` | POST | Refresh one provider (`kimi`, `claude`, `cursor`, `chatgpt`, `minimax`, `grok`) |
 
 Optional env vars:
 
@@ -58,10 +60,16 @@ Optional env vars:
 
 ## Credentials
 
-### Kimi (`kimi-token.txt`)
-- Log in to https://www.kimi.com
-- Open DevTools → Network → find any request to `MembershipService`
-- Copy the JWT from `Authorization: Bearer <token>` (token only, no `Bearer ` prefix)
+### Kimi (`kimi.json` preferred; `kimi-token.txt` legacy)
+```json
+{
+  "accessToken": "eyJ…",
+  "refreshToken": "eyJ…"
+}
+```
+- **accessToken** (~15 min): from `localStorage.access_token` on https://www.kimi.com, or `Authorization: Bearer` on a `MembershipService` request
+- **refreshToken** (~90 days): from `localStorage.refresh_token` — required so the server can rotate access tokens automatically
+- Legacy `kimi-token.txt` (access JWT only) still works until it expires; without a refresh token the card will go stale after ~15 minutes
 
 ### Claude (`claude.json`)
 ```json
@@ -105,6 +113,17 @@ On HTTP 401 the dashboard shows a **Token expired** banner instead of crashing.
 - `token`: JWT from `_token` cookie on https://platform.minimax.io
 - `groupId`: from `x-group-id`
 
+### Grok (`grok.json`)
+```json
+{
+  "sso": "your-sso-cookie-value",
+  "plan": "SuperGrok Lite"
+}
+```
+- `sso`: value of the `sso` cookie from a logged-in https://grok.com request
+- `plan`: optional display label
+- The fetcher calls Grok's private gRPC-Web `GetGrokCreditsConfig` endpoint. It does not need the analytics, Stripe, or Cloudflare cookies included by DevTools' **Copy as cURL**.
+
 ## Project layout
 
 ```
@@ -115,8 +134,16 @@ lib/fetchers/          # provider API clients
 public/                # single-page dashboard
 credentials/           # templates only (gitignored secrets)
 .cursor/skills/        # agent skill for refetching credentials
+ubersicht/             # macOS desktop widget (Übersicht)
 widgets/               # original Kimi Canvas widgets (reference)
 automations/           # original Python automations (reference)
 ```
+
+## macOS desktop widget
+
+The same cards can render straight onto the desktop via
+[Übersicht](https://tracesof.net/uebersicht/) — see
+[`ubersicht/README.md`](ubersicht/README.md). It reads the same `/api/status`
+endpoint, so the server needs to be running either way.
 
 The `widgets/` and `automations/` folders are kept as the original Kimi Canvas migration pack. The runnable app is the Node server + `public/` page.

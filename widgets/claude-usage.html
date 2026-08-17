@@ -164,7 +164,8 @@
     curStatus = status;
     var dot = $('liveDot');
     if (status === 'running') { dot.textContent = 'refreshing'; dot.classList.remove('err'); }
-    else if (status === 'error' || status === 'degraded') { dot.textContent = 'stale'; dot.classList.add('err'); }
+    else if (status === 'stale') { dot.textContent = 'stale'; dot.classList.add('err'); }
+    else if (status === 'error' || status === 'degraded') { dot.textContent = 'error'; dot.classList.add('err'); }
     else { dot.textContent = fmtRefresh(lastAsof); dot.classList.remove('err'); }
   }
   if (window.DaimonWidget && typeof window.DaimonWidget.onDataChange === 'function') {

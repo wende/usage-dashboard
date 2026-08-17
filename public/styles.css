@@ -160,7 +160,55 @@ html, body {
 .header-right {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.card-refresh {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-quaternary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.card-refresh svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.card-refresh:hover {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.card-refresh:active {
+  color: var(--text);
+}
+
+.card-refresh:disabled,
+.card-refresh.is-busy {
+  cursor: default;
+  color: var(--text-tertiary);
+  background: transparent;
+}
+
+.card-refresh.is-busy svg {
+  animation: card-refresh-spin 0.7s linear infinite;
+}
+
+@keyframes card-refresh-spin {
+  to { transform: rotate(360deg); }
 }
 
 .plan {
@@ -390,5 +438,54 @@ html, body {
 @media (max-width: 600px) {
   .hero output {
     font-size: 32px;
+  }
+}
+
+/* -----------------------------------------------------------------------
+ * Responsive / mobile layout
+ *
+ * Below --responsive-breakpoint (see layout.js: 900px) the JS drops the
+ * `is-editable` class from the dashboard and clears its inline sizing on
+ * the cards. In that state the rules below take over: cards flow in a
+ * CSS grid that reflows from 3 → 2 → 1 columns as the viewport shrinks,
+ * drag/resize is disabled, and per-card inline positions are ignored.
+ * --------------------------------------------------------------------- */
+.dashboard:not(.is-editable) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  min-height: 0;
+  height: auto !important;
+}
+
+.dashboard:not(.is-editable) .card {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible;
+  user-select: auto;
+  touch-action: auto;
+}
+
+.dashboard:not(.is-editable) .card-header {
+  cursor: default;
+}
+
+.dashboard:not(.is-editable) .resize-handle {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 12px 12px 24px;
+  }
+  .toolbar {
+    display: none;
+  }
+  .card {
+    padding: 14px 16px 16px;
+    gap: 11px;
   }
 }

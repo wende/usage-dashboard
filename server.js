@@ -3,11 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROOT } from "./lib/paths.js";
+import { StaleError } from "./lib/errors.js";
 import { fetchKimi } from "./lib/fetchers/kimi.js";
 import { fetchClaude } from "./lib/fetchers/claude.js";
 import { fetchCursor } from "./lib/fetchers/cursor.js";
 import { fetchChatgpt } from "./lib/fetchers/chatgpt.js";
 import { fetchMinimax } from "./lib/fetchers/minimax.js";
+import { fetchGrok } from "./lib/fetchers/grok.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, "public");
@@ -20,6 +22,7 @@ const PROVIDERS = {
   cursor: fetchCursor,
   chatgpt: fetchChatgpt,
   minimax: fetchMinimax,
+  grok: fetchGrok,
 };
 
 /** @type {Record<string, { status: string, data: object|null, error?: string, updatedAt?: string }>} */
@@ -40,14 +43,26 @@ async function refreshOne(name) {
     };
   } catch (err) {
     const prev = cache[name];
+    // StaleError means the credential/token was rejected — the cached data is
+    // no longer trustworthy. Everything else (network, 5xx, parse, etc.) is a
+    // generic "error" — the data isn't necessarily stale, it just couldn't be
+    // refreshed right now.
+    const isStale = err instanceof StaleError || err?.code === "stale";
     cache[name] = {
-      status: "error",
+      status: isStale ? "stale" : "error",
       data: prev?.data ?? null,
       error: err.message || String(err),
       updatedAt: new Date().toISOString(),
     };
-    console.error(`[${name}]`, err.message || err);
+    console.error(`[${name}] (${isStale ? "stale" : "error"})`, err.message || err);
   }
+}
+
+export async function refreshProvider(name) {
+  if (!PROVIDERS[name]) return null;
+  cache[name] = { ...cache[name], status: "running" };
+  await refreshOne(name);
+  return cache[name];
 }
 
 export async function refreshAll() {
@@ -119,6 +134,20 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && url === "/api/refresh") {
     refreshAll().catch((err) => console.error("refresh failed", err));
     sendJson(res, 202, { ok: true, refreshing: true });
+    return;
+  }
+
+  const refreshOneMatch = url.match(/^\/api\/refresh\/([a-z]+)$/);
+  if (req.method === "POST" && refreshOneMatch) {
+    const name = refreshOneMatch[1];
+    if (!PROVIDERS[name]) {
+      sendJson(res, 404, { ok: false, error: "unknown provider" });
+      return;
+    }
+    refreshProvider(name).catch((err) =>
+      console.error(`refresh ${name} failed`, err)
+    );
+    sendJson(res, 202, { ok: true, refreshing: name });
     return;
   }
 

@@ -12,6 +12,7 @@ kimi-token.txt
 **/claude.json
 **/cursor.json
 **/chatgpt.json
+**/grok.json
 **/minimax.json
 !.cursor/**
 !credentials/*.template

@@ -23,8 +23,7 @@ Or restart `npm start`.
 
 | Provider | File | Fields |
 |----------|------|--------|
-| Kimi | `kimi.json` (preferred) | `accessToken`, `refreshToken` (both JWTs) |
-| Kimi | `kimi-token.txt` (legacy) | access JWT only — **cannot** auto-refresh; expires ~15 min |
+| Kimi | `kimi-token.txt` | raw JWT (no `Bearer `) |
 | Claude | `claude.json` | `cookies`, `orgId` |
 | Cursor | `cursor.json` | `cookie` = `WorkosCursorSessionToken=...` |
 | ChatGPT | `chatgpt.json` | `bearer`, `deviceId`, optional `sessionCookie` |
@@ -41,44 +40,8 @@ Or restart `npm start`.
 4. Pick an authenticated API request and copy:
 
 ### Kimi — https://www.kimi.com
-- **Always harvest both tokens.** Access JWT is ~**15 minutes**; refresh JWT is ~**90 days**. The fetcher auto-rotates access via refresh.
-- Write **`~/.quota-watch/kimi.json`**:
-  ```json
-  { "accessToken": "<jwt>", "refreshToken": "<jwt>" }
-  ```
-  Also write access-only to `kimi-token.txt` for legacy tools (fetcher does this on refresh).
-- Manual: `MembershipService` → `Authorization: Bearer` is the **access** JWT only — still grab `localStorage.refresh_token`.
-- Verify quota:  
-  `POST https://www.kimi.com/apiv2/kimi.gateway.membership.v2.MembershipService/GetSubscriptionStats`  
-  body `{}`, `Authorization: Bearer <access>`, expect **200** + `subscriptionBalance`
-- Auto-refresh endpoint used by `lib/fetchers/kimi.js`:  
-  `POST https://auth.kimi.com/api/account.gateway.v1.AuthService/RefreshToken`  
-  body `{ "refresh_token": "<refresh jwt>" }` → `{ accessToken, refreshToken }` (persist **both**; refresh may rotate)
-
-**Faster agent method (WebBridge, verified 2026-08-10):** once on `https://www.kimi.com` (any app page; membership/quota works) and logged in, **skip network sniffing**:
-
-```js
-// evaluate
-JSON.stringify({
-  accessToken: localStorage.getItem("access_token"),
-  refreshToken: localStorage.getItem("refresh_token"),
-})
-```
-
-Write `kimi.json` (mode 600). Confirm only HTTP status + non-secret fields (usage %). Decode JWT `typ`: access must be `"access"`, refresh `"refresh"`.
-
-**Kimi pitfalls (do not waste time on these):**
-
-| Dead end | Why | Do instead |
-|----------|-----|------------|
-| Saving **only** `access_token` / `kimi-token.txt` | Access JWT lifetime is **exactly ~15 min** (`exp - iat = 900s`) | Always save `refresh_token` in `kimi.json` |
-| WebBridge `network detail` on MembershipService | Returns **response body only** — no `Authorization` headers | `localStorage.access_token` + `refresh_token` |
-| Decrypt Dia/Chrome cookie `kimi-auth` | Cookie often holds an **already-expired** access JWT while UI still looks logged in | **localStorage**, not the cookie DB |
-| `document.cookie` / `kimi-auth` | Not exposed to page JS | `localStorage` |
-| Using refresh JWT as Bearer on membership API | 401 `token type mismatch: got "refresh", want "access"` | Bearer = access only; refresh only via AuthService/RefreshToken |
-| Cookie-only API call without Bearer | 401 `REASON_INVALID_AUTH_TOKEN` | `Authorization: Bearer <access_token>` |
-
-WebBridge bootstrap: if `status` has `running: false`, run `kimi-webbridge start`. If `extension_connected: false`, wait for the user’s browser with the extension open (poll status) — do not invent Playwright login.
+- Request containing `MembershipService`
+- Header `Authorization: Bearer <jwt>` → write **jwt only** to `kimi-token.txt`
 
 ### Claude — https://claude.ai
 - Any `claude.ai` API request → full `Cookie` header → `cookies`
@@ -110,8 +73,8 @@ skip network sniffing entirely:
 
 ### Grok — https://grok.com/?_s=usage
 - Find `grok_api_v2.GrokBuildBilling/GetGrokCreditsConfig` in Network.
-- Copy only the value of the `sso` cookie into `grok.json`; analytics, Stripe, and Cloudflare cookies are not needed.
-- The request is gRPC-Web protobuf with an empty message. Verify via `POST /api/refresh/grok` and check the Grok card.
+- Copy only the value of the `sso` cookie into `grok.json`; the other cookies from **Copy as cURL** are unnecessary.
+- The request is gRPC-Web protobuf with an empty message. Verify via the dashboard or `POST /api/refresh/grok` rather than expecting readable JSON from curl.
 
 ## Automated harvest (agent)
 
@@ -120,26 +83,19 @@ Prefer the user's **already logged-in** browser. Fresh Playwright profiles usual
 ### Option A — Kimi WebBridge (real browser session)
 
 1. Health check: `~/.kimi-webbridge/bin/kimi-webbridge status`  
-   Need `running: true` and `extension_connected: true`.  
-   - `running: false` → `~/.kimi-webbridge/bin/kimi-webbridge start`  
-   - `extension_connected: false` → user must open the browser with the WebBridge extension; poll status (do not loop forever — ask the user).
-2. Navigate (new tab) to the provider usage page, **session name per site** (e.g. `"session":"kimi-token"`).
-3. Confirm login via `list_tabs` / `snapshot` (not a sign-in URL). Logged-in Kimi shows app chrome (New Chat, sidebar), not a login form.
-4. Harvest credentials — **prefer site-specific evaluate** (see ChatGPT / Kimi sections above) over network capture.
-5. Network capture is a fallback only:
-   - `network start` → reload / hit usage API → `network list` → `network detail`.
-   - **WebBridge `network detail` often omits request headers** (Authorization / Cookie). If detail has only `body`/`status`, stop and use evaluate / Option B.
-   - Cursor’s `WorkosCursorSessionToken` is **HttpOnly** — evaluate/cookie JS will fail; use Option B.
+   Need `running: true` and `extension_connected: true`.
+2. Navigate (new tab) to the provider usage page, session name per site.
+3. Confirm login via `list_tabs` / `snapshot` (not a sign-in URL).
+4. Start `network` capture → trigger the usage API → `network list` / `detail`.
+5. If the token is **HttpOnly** (Cursor), Network detail may omit Cookie headers. Fall back to Option B.
 6. Write `~/.quota-watch/...`, `chmod 600`, call `/api/refresh`.
-7. `close_session` when done. Wipe any temp files that held JWTs (`/tmp/...`).
+7. `close_session` when done.
 
 If the tab is on a sign-in page, ask the user to sign in, then continue.
 
 ### Option B — Decrypt Chromium cookie DB (HttpOnly)
 
-Used successfully for **Cursor** in Dia (`WorkosCursorSessionToken`).
-
-For **Kimi**, cookie decrypt of `kimi-auth` is **unreliable as a refresh path**: the cookie JWT can already be expired while `localStorage.access_token` is still valid (or freshly rotated). Prefer WebBridge evaluate. Only decrypt Kimi cookies if WebBridge is unavailable **and** you immediately check JWT `exp`.
+Used successfully for **Cursor** in Dia (`WorkosCursorSessionToken`):
 
 1. Locate the browser profile that is logged in (WebBridge extension path often reveals it), e.g.  
    `~/Library/Application Support/Dia/User Data/Default/Cookies`
@@ -152,11 +108,10 @@ For **Kimi**, cookie decrypt of `kimi-auth` is **unreliable as a refresh path**:
 6. AES-128-CBC decrypt `encrypted_value[3:]` when prefix is `v10`, IV = 16 spaces.
 7. Strip PKCS#7 padding, then strip the leading **32-byte** Chromium host-hash prefix.
 8. Remaining UTF-8 is the cookie value. Prefix `WorkosCursorSessionToken=` for `cursor.json`.
-9. **Verify** with a live request before declaring success (and for JWTs, decode `exp` first):
+9. **Verify** with a live request before declaring success:
 
 ```bash
-# Cursor: expect HTTP 200 from usage-summary when cookie is valid
-# Kimi: expect HTTP 200 from MembershipService/GetSubscriptionStats with Bearer token
+# expect HTTP 200 from usage-summary when cookie is valid
 ```
 
 Do **not** print tokens/cookies in chat logs. Confirm only status codes and non-secret fields (plan name, percentages).

@@ -7,6 +7,10 @@
   var GAP = 12;
   var MIN_W = 3;
   var MIN_H = 4;
+  // Below this viewport width we drop the draggable/resizable absolute
+  // layout and let CSS grid reflow the tiles into 1–2 columns. Kept in
+  // sync with styles.css `.dashboard:not(.is-editable)` rules.
+  var RESPONSIVE_BREAKPOINT = 900;
 
   /** Default layout matching the screenshot grid (12-col). */
   var DEFAULTS = {
@@ -15,6 +19,7 @@
     "card-cursor": { x: 8, y: 0, w: 4, h: 7 },
     "card-chatgpt": { x: 4, y: 7, w: 4, h: 7 },
     "card-minimax": { x: 8, y: 7, w: 4, h: 7 },
+    "card-grok": { x: 0, y: 14, w: 4, h: 7 },
   };
 
   var board = document.getElementById("dashboard");
@@ -84,7 +89,27 @@
     return max * cs.row + Math.max(0, max - 1) * cs.gap + 8;
   }
 
+  function isNarrow() {
+    return window.innerWidth < RESPONSIVE_BREAKPOINT;
+  }
+
+  function clearInlineTile(el) {
+    el.style.left = "";
+    el.style.top = "";
+    el.style.width = "";
+    el.style.height = "";
+    el.style.zIndex = "";
+  }
+
   function renderAll() {
+    if (isNarrow()) {
+      // CSS grid drives layout; strip inline positioning so tiles reflow.
+      board.classList.remove("is-editable");
+      tiles.forEach(clearInlineTile);
+      board.style.height = "";
+      return;
+    }
+    board.classList.add("is-editable");
     tiles.forEach(function (el) {
       var t = layout[el.id] || DEFAULTS[el.id];
       if (!t) return;
@@ -107,6 +132,7 @@
   }
 
   function startDrag(el, e) {
+    if (isNarrow()) return;
     if (e.button != null && e.button !== 0) return;
     var header = e.target.closest(".card-header");
     if (!header || !el.contains(header)) return;
@@ -129,6 +155,7 @@
   }
 
   function startResize(el, e) {
+    if (isNarrow()) return;
     if (e.button != null && e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
