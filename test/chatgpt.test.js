@@ -12,7 +12,8 @@ test("maps primary=5h, secondary=weekly", () => {
   const { fiveHour, weekly } = parseChatgptRateLimit(FIXTURE);
   assert.equal(fiveHour.pct, 3);
   assert.equal(weekly.pct, 0);
-  assert.match(fiveHour.reset, /^resets \d{2}-\d{2} \d{2}:\d{2}$/);
+  // 5h uses HH:MM only (always resets same day); weekly uses MM-DD HH:MM.
+  assert.match(fiveHour.reset, /^resets \d{2}:\d{2}$/);
   assert.match(weekly.reset, /^resets \d{2}-\d{2} \d{2}:\d{2}$/);
   // fiveHour window is 5h; weekly window is 7d.
   assert.equal(Date.parse(fiveHour.resetAt) - Date.parse(fiveHour.startAt), 5 * 60 * 60 * 1000);

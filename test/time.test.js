@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   elapsedPct,
+  formatReset,
+  formatResetTime,
   inferPeriodStart,
   jwtExpMs,
   paceCell,
@@ -106,4 +108,12 @@ test("jwtExpMs returns null for garbage or missing exp", () => {
   assert.equal(jwtExpMs("not-a-jwt"), null);
   const payload = Buffer.from(JSON.stringify({ sub: "x" })).toString("base64url");
   assert.equal(jwtExpMs(`aaa.${payload}.bbb`), null);
+});
+
+test("formatReset is 'resets MM-DD HH:MM'", () => {
+  assert.match(formatReset(new Date("2026-08-25T23:07:00Z")), /^resets \d{2}-\d{2} \d{2}:\d{2}$/);
+});
+
+test("formatResetTime is 'resets HH:MM'", () => {
+  assert.match(formatResetTime(new Date("2026-08-25T23:07:00Z")), /^resets \d{2}:\d{2}$/);
 });
