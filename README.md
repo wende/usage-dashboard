@@ -17,7 +17,7 @@ Each card is titled with the bare provider name. Hero and sub-row labels:
 | Cursor | Monthly usage | API usage |
 | ChatGPT | 5-hour usage | Weekly usage |
 | Grok | Weekly usage | — |
-| MiniMax | Weekly usage | 5-hour usage |
+| MiniMax | 5-hour usage | Weekly usage |
 
 Pixel rails fill amber at ≥70 % and red at ≥90 %. Percents display to one decimal. A live-dot in the header shows last refresh time, or `refreshing` / `stale` / `error`. The circular button next to it POSTs `/api/refresh/:provider`.
 

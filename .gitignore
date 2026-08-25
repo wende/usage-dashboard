@@ -16,3 +16,4 @@ kimi-token.txt
 **/minimax.json
 !.cursor/**
 !credentials/*.template
+__pycache__/
