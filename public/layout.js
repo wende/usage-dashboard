@@ -17,7 +17,7 @@
     "card-kimi": { x: 0, y: 0, w: 4, h: 14 },
     "card-claude": { x: 4, y: 0, w: 4, h: 7 },
     "card-cursor": { x: 8, y: 0, w: 4, h: 7 },
-    "card-chatgpt": { x: 4, y: 7, w: 4, h: 7 },
+    "card-chatgpt": { x: 4, y: 7, w: 4, h: 10 },
     "card-minimax": { x: 8, y: 7, w: 4, h: 7 },
     "card-grok": { x: 0, y: 14, w: 4, h: 7 },
   };

@@ -167,11 +167,20 @@
 
         <div class="hero" id="chatgpt-hero">
           <div class="hero-line">
-            <output id="chatgpt-weeklyPct">--%</output>
-            <span class="name">Weekly usage</span>
-            <span class="reset" id="chatgpt-weeklyReset"></span>
+            <output id="chatgpt-fivePct">--%</output>
+            <span class="name">5-hour usage</span>
+            <span class="reset" id="chatgpt-fiveReset"></span>
           </div>
-          <div class="pxrail hero-rail" id="chatgpt-weeklyRail" aria-hidden="true"></div>
+          <div class="pxrail hero-rail" id="chatgpt-fiveRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">Weekly usage</span>
+            <span class="val" id="chatgpt-weeklyPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="chatgpt-weeklyRail" aria-hidden="true"></div>
+          <span class="row-sub" id="chatgpt-weeklyReset"></span>
         </div>
       </article>
 

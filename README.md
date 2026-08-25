@@ -15,7 +15,7 @@ Each card is titled with the bare provider name. Hero and sub-row labels:
 | Kimi | Monthly usage | 5-hour usage, 7-day usage, Gift usage (when the API returns gifts) |
 | Claude | 5-hour usage | 7-day usage, Model limits · weekly (when scoped limits exist) |
 | Cursor | Monthly usage | API usage |
-| ChatGPT | Weekly usage | — |
+| ChatGPT | 5-hour usage | Weekly usage |
 | Grok | Weekly usage | — |
 | MiniMax | Weekly usage | 5-hour usage |
 
