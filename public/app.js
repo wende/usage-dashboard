@@ -151,13 +151,18 @@
   ];
 
   function paintWindow(cfg, part, w, resetText) {
-    paintRail($(cfg.name + "-" + part.id + "Rail"), part.cells, w.pct,
-      part.pace || part === cfg.hero ? elapsedPct(w) : null);
+    // ponytail: a window may be missing (cached payload from before a fetcher
+    // rewrite, or API returning only one of two slots). Paint an empty row
+    // instead of crashing the poll loop.
+    var pct = w ? w.pct : 0;
+    var rail = $(cfg.name + "-" + part.id + "Rail");
+    paintRail(rail, part.cells, pct,
+      w && (part.pace || part === cfg.hero) ? elapsedPct(w) : null);
     var pctEl = $(cfg.name + "-" + part.id + "Pct");
-    pctEl.textContent = fmtPct(w.pct);
-    if (part.hotPct) pctEl.className = w.pct >= 90 ? "hot" : "";
+    if (pctEl) pctEl.textContent = fmtPct(pct);
+    if (part.hotPct && pctEl) pctEl.className = pct >= 90 ? "hot" : "";
     var resetEl = $(part.resetId || cfg.name + "-" + part.id + "Reset");
-    if (resetEl) resetEl.textContent = resetText != null ? resetText : (w.reset || "");
+    if (resetEl) resetEl.textContent = resetText != null ? resetText : (w && w.reset || "");
   }
 
   function renderProvider(cfg, entry) {
