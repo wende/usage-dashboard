@@ -104,6 +104,36 @@ skip network sniffing entirely:
   + `oai-device-id: …` — expect **200**. (Note: `/api/auth/session` and `/backend-api/settings/user`
   return 403 to curl even with a valid token — only trust the wham/usage check.)
 
+**Critical pitfall — TLS fingerprint blocks the Node fetcher (2026-08-24):** chatgpt.com
+returns `401 token_expired` to Node undici `fetch` even with a freshly-harvested, valid
+bearer. The same bearer via `curl` or Python `urllib` returns `200`. `lib/fetchers/chatgpt.js`
+now shells out to `/usr/bin/curl` (LibreSSL fingerprint passes). Symptom: dashboard says
+`chatgpt stale` right after a "successful" refresh; `node -e "fetch(...)"` returns 401
+while `curl` with identical headers returns 200.
+
+| Verification | Expectation |
+|--------------|-------------|
+| `curl -sS -m 30 https://chatgpt.com/backend-api/wham/usage` + Bearer | `200` (use this as ground truth) |
+| `node -e "fetch(...wham/usage...)"` + same Bearer | `401 token_expired` (fingerprint block, NOT a real failure) |
+| `/api/status` after restart + `/api/refresh/chatgpt` | `status=ok`, `plan=Plus` |
+
+So **never** declare a refresh successful based on a Node `fetch` round-trip alone —
+curl, or restart the server and check `/api/status`. If the fetcher itself fails with
+`401 token_expired` even though curl works, the chatgpt fetcher code regressed; re-apply
+the `execFile("curl", …)` pattern from `lib/fetchers/chatgpt.js`.
+
+**Restart the server after any fetcher edit.** `node server.js` caches imported modules
+in memory; a stale fetcher keeps reading the old code path until restart. After editing
+`lib/fetchers/chatgpt.js` (or any fetcher), kill the running server and `npm start` again
+before testing via `/api/status`.
+
+**`sessionCookie` from disk can silently rot.** `__Secure-next-auth.session-token` is
+HttpOnly, so the agent can't refresh it from page JS — only the browser session
+re-rotates it. If the saved cookie no longer matches the live browser session, `/api/auth/session`
+from Node with that cookie returns `403` HTML (not a JSON 401). Re-harvest by signing
+out and back in to chatgpt.com in the browser, or skip the field — `lib/fetchers/chatgpt.js`
+only sends `cookie:` if `cred.sessionCookie` is non-empty.
+
 ### MiniMax — https://platform.minimax.io/console/usage
 - Cookie `_token=<jwt>` → `token` (jwt only)
 - Header `x-group-id` → `groupId`
@@ -172,6 +202,12 @@ After writing credentials:
 1. `POST /api/refresh`
 2. `GET /api/status` → provider `status` is `ok` (or ChatGPT `tokenExpired` banner path)
 3. Dashboard live-dot shows a time, not `stale` / `expired`
+
+**ChatGPT-only:** always cross-check via `curl` after a refresh. The Node fetcher's
+TLS fingerprint gets blocked by chatgpt.com (`401 token_expired` on a valid bearer),
+so a clean `/api/status` is the proof, but if it shows `stale`, debug with curl before
+touching the creds file — see the ChatGPT section. If the fetcher code itself is the
+suspect (e.g. after an edit), restart `node server.js` so the new fetcher module loads.
 
 ## Safety
 
