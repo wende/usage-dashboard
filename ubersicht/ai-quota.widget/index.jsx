@@ -267,22 +267,41 @@ const REFRESH_ICON = (
   </svg>
 );
 
-// Per-card refresh button. POSTs /api/refresh/:name and then dispatches
-// OUTPUT_UPDATED with a fresh /api/status fetch so the widget re-renders
-// immediately rather than waiting for the next refreshFrequency tick.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// /api/refresh/:name returns 202 and does the work async, so a single status
+// read still says "running". Poll like the dashboard does until the provider
+// leaves that state, dispatching each payload so the card updates live.
+async function pollUntilDone(name, dispatch) {
+  for (let i = 0; i < 40; i++) {
+    await sleep(400);
+    let output;
+    try {
+      output = await run(`curl -s -m 5 http://localhost:3847/api/status`);
+    } catch (err) {
+      console.error("status poll failed", err);
+      continue;
+    }
+    dispatch({ type: "OUTPUT_UPDATED", output });
+    try {
+      const entry = JSON.parse(output).providers[name];
+      if (entry && entry.status !== "running") return;
+    } catch (_) {}
+  }
+}
+
+// Per-card refresh button. POSTs /api/refresh/:name, then polls /api/status
+// and dispatches OUTPUT_UPDATED so the widget re-renders as soon as the fetch
+// lands rather than waiting for the next refreshFrequency tick.
 function RefreshButton({ name, entry, dispatch }) {
   const status = entry && entry.status;
   const busy = status === "running" || status === "pending";
   const onClick = () => {
     if (busy) return;
-    run(`curl -s -m 5 -X POST http://localhost:3847/api/refresh/${name}`)
-      .catch((err) => console.error(`refresh ${name} failed`, err))
-      .then(() =>
-        run(`curl -s -m 5 http://localhost:3847/api/status`).then(
-          (output) => dispatch({ type: "OUTPUT_UPDATED", output }),
-          (err) => console.error("status poll failed", err)
-        )
-      );
+    run(`curl -s -m 5 -X POST http://localhost:3847/api/refresh/${name}`).then(
+      () => pollUntilDone(name, dispatch),
+      (err) => console.error(`refresh ${name} failed`, err)
+    );
   };
   return (
     <button
@@ -476,19 +495,20 @@ const MinimaxLogo = (
 
 /* ---------- cards ---------- */
 
-// Per-provider card config. Hero always shows pace; rows only with pace: true.
+// Per-provider card config. Hero and rows both show the pace marker whenever
+// the window carries startAt/resetAt; elapsedPct returns null when it cannot.
 const PROVIDERS = [
   { name: "kimi", title: "Kimi", logo: KimiLogo,
     hero: { key: "total", name: "Monthly usage" },
     rows: [
       { key: "fiveHour", label: "5-hour usage" },
-      { key: "sevenDay", label: "7-day usage", pace: true },
+      { key: "sevenDay", label: "7-day usage" },
     ],
     list: { key: "gifts", title: "Gift usage",
       labelFn: (g) => `Gift · expires ${g.expires || "unknown"}` } },
   { name: "claude", title: "Claude", logo: ClaudeLogo,
     hero: { key: "fiveHour", name: "5-hour usage" },
-    rows: [{ key: "sevenDay", label: "7-day usage", pace: true }],
+    rows: [{ key: "sevenDay", label: "7-day usage" }],
     list: { key: "scoped", title: "Model limits · weekly", labelFn: (s) => s.name } },
   { name: "cursor", title: "Cursor", logo: CursorLogo, plan: true,
     hero: { key: "total", name: "Monthly usage", resetKey: "cycle" },
@@ -496,14 +516,15 @@ const PROVIDERS = [
   { name: "chatgpt", title: "ChatGPT", logo: ChatgptLogo, plan: true,
     expired: { title: "Token expired",
       body: <span>Update <code>bearer</code> in <code>chatgpt.json</code> and refresh.</span> },
-    hero: { key: "weekly", name: "Weekly usage" } },
+    hero: { key: "fiveHour", name: "5-hour usage" },
+    rows: [{ key: "weekly", label: "Weekly usage" }] },
   { name: "grok", title: "Grok", logo: GrokLogo, plan: true,
     expired: { title: "Session expired",
       body: <span>Update the <code>sso</code> cookie in <code>grok.json</code> and refresh.</span> },
     hero: { key: "weekly", name: "Weekly usage" } },
   { name: "minimax", title: "MiniMax", logo: MinimaxLogo,
-    hero: { key: "weekly", name: "Weekly usage" },
-    rows: [{ key: "window", label: "5-hour usage" }] },
+    hero: { key: "fiveHour", name: "5-hour usage" },
+    rows: [{ key: "weekly", label: "Weekly usage" }] },
 ];
 
 function ProviderCard({ cfg, entry, dispatch }) {
@@ -528,18 +549,23 @@ function ProviderCard({ cfg, entry, dispatch }) {
       </article>
     );
   }
-  const heroWindow = d[cfg.hero.key];
+  // ponytail: a window may be missing when the cached payload predates a
+  // fetcher rename. Render an empty slot instead of crashing the whole widget.
+  const heroWindow = d[cfg.hero.key] || {};
   return (
     <article className="card">
       <Header logo={cfg.logo} title={cfg.title} name={cfg.name} entry={entry}
         plan={cfg.plan ? d.plan : null} dispatch={dispatch} />
-      <Hero pct={heroWindow.pct} name={cfg.hero.name}
+      <Hero pct={heroWindow.pct || 0} name={cfg.hero.name}
         reset={cfg.hero.resetKey ? d[cfg.hero.resetKey] : heroWindow.reset}
-        pacePct={elapsedPct(heroWindow)} />
-      {(cfg.rows || []).map((r) => (
-        <Row key={r.key} label={r.label} pct={d[r.key].pct} reset={d[r.key].reset}
-          pacePct={r.pace ? elapsedPct(d[r.key]) : undefined} />
-      ))}
+        pacePct={d[cfg.hero.key] ? elapsedPct(heroWindow) : undefined} />
+      {(cfg.rows || []).map((r) => {
+        const w = d[r.key] || {};
+        return (
+          <Row key={r.key} label={r.label} pct={w.pct || 0} reset={w.reset}
+            pacePct={d[r.key] ? elapsedPct(w) : undefined} />
+        );
+      })}
       {cfg.list && (
         <ListSection title={cfg.list.title} items={d[cfg.list.key]} labelFn={cfg.list.labelFn} />
       )}

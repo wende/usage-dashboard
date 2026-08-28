@@ -119,19 +119,20 @@
   }
 
   // Per-provider card config. DOM id convention: <name>-<id>Rail|Pct|Reset.
-  // Hero rows always show pace; sub-rows only with pace: true.
+  // Hero and sub-rows both show the pace marker whenever the window carries
+  // startAt/resetAt; elapsedPct returns null when it cannot compute one.
   var PROVIDERS = [
     { name: "kimi",
       hero: { key: "total", id: "total", cells: 40 },
       rows: [
         { key: "fiveHour", id: "five", cells: 28 },
-        { key: "sevenDay", id: "seven", cells: 28, pace: true },
+        { key: "sevenDay", id: "seven", cells: 28 },
       ],
       list: { key: "gifts", wrapId: "kimi-giftWrap", sectionId: "kimi-giftSection",
         label: function (g) { return "Gift · expires " + (g.expires || "unknown"); } } },
     { name: "claude",
       hero: { key: "fiveHour", id: "five", cells: 40 },
-      rows: [{ key: "sevenDay", id: "seven", cells: 28, pace: true }],
+      rows: [{ key: "sevenDay", id: "seven", cells: 28 }],
       list: { key: "scoped", wrapId: "claude-scopedWrap", sectionId: "claude-scopedSection",
         label: function (s) { return s.name; } } },
     { name: "cursor",
@@ -156,8 +157,7 @@
     // instead of crashing the poll loop.
     var pct = w ? w.pct : 0;
     var rail = $(cfg.name + "-" + part.id + "Rail");
-    paintRail(rail, part.cells, pct,
-      w && (part.pace || part === cfg.hero) ? elapsedPct(w) : null);
+    paintRail(rail, part.cells, pct, w ? elapsedPct(w) : null);
     var pctEl = $(cfg.name + "-" + part.id + "Pct");
     if (pctEl) pctEl.textContent = fmtPct(pct);
     if (part.hotPct && pctEl) pctEl.className = pct >= 90 ? "hot" : "";
