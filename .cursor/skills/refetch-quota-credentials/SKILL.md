@@ -29,6 +29,7 @@ Or restart `npm start`.
 | Cursor | `cursor.json` | `cookie` = `WorkosCursorSessionToken=...` |
 | ChatGPT | `chatgpt.json` | `bearer`, `deviceId`, optional `sessionCookie` |
 | MiniMax | `minimax.json` | `token` (JWT from `_token`), `groupId` |
+| GLM | `glm.json` | `apiKey` (Z.ai key from https://z.ai/manage-apikey) |
 | Grok | `grok.json` | `sso`, optional `plan` |
 
 `chmod 600` credential files after writing.
@@ -142,6 +143,10 @@ only sends `cookie:` if `cred.sessionCookie` is non-empty.
 - Find `grok_api_v2.GrokBuildBilling/GetGrokCreditsConfig` in Network.
 - Copy only the value of the `sso` cookie into `grok.json`; analytics, Stripe, and Cloudflare cookies are not needed.
 - The request is gRPC-Web protobuf with an empty message. Verify via `POST /api/refresh/grok` and check the Grok card.
+
+### GLM — https://z.ai/manage-apikey
+- No network sniffing needed: copy the API key shown on the manage-apikey page into `glm.json`.
+- Verify the key: `curl -s -H "Authorization: Bearer <key>" https://api.z.ai/api/monitor/usage/quota/limit` → expect `success:true` with a `data.limits` array.
 
 ## Automated harvest (agent)
 

@@ -10,6 +10,7 @@ import { fetchCursor } from "./lib/fetchers/cursor.js";
 import { fetchChatgpt } from "./lib/fetchers/chatgpt.js";
 import { fetchMinimax } from "./lib/fetchers/minimax.js";
 import { fetchGrok } from "./lib/fetchers/grok.js";
+import { fetchGlm } from "./lib/fetchers/glm.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, "public");
@@ -23,6 +24,7 @@ const PROVIDERS = {
   chatgpt: fetchChatgpt,
   minimax: fetchMinimax,
   grok: fetchGrok,
+  glm: fetchGlm,
 };
 
 /** @type {Record<string, { status: string, data: object|null, error?: string, updatedAt?: string }>} */

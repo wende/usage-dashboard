@@ -493,6 +493,20 @@ const MinimaxLogo = (
   </svg>
 );
 
+const GlmLogo = (
+  <svg viewBox="0 0 24 24">
+    <rect width="24" height="24" rx="5" fill="#111" />
+    <text
+      x="12" y="16.5"
+      textAnchor="middle"
+      fontFamily="system-ui, sans-serif"
+      fontSize="13"
+      fontWeight="700"
+      fill="#fff"
+    >Z</text>
+  </svg>
+);
+
 /* ---------- cards ---------- */
 
 // Per-provider card config. Hero and rows both show the pace marker whenever
@@ -523,6 +537,9 @@ const PROVIDERS = [
       body: <span>Update the <code>sso</code> cookie in <code>grok.json</code> and refresh.</span> },
     hero: { key: "weekly", name: "Weekly usage" } },
   { name: "minimax", title: "MiniMax", logo: MinimaxLogo,
+    hero: { key: "fiveHour", name: "5-hour usage" },
+    rows: [{ key: "weekly", label: "Weekly usage" }] },
+  { name: "glm", title: "GLM", logo: GlmLogo, plan: true,
     hero: { key: "fiveHour", name: "5-hour usage" },
     rows: [{ key: "weekly", label: "Weekly usage" }] },
 ];

@@ -1,6 +1,6 @@
 # Usage Dashboard
 
-Self-hostable quota dashboard for Kimi, Claude, Cursor, ChatGPT, Grok, and MiniMax. A zero-dependency Node server polls each provider and serves a single-page app plus a macOS [Übersicht](https://tracesof.net/uebersicht/) widget from the same cache.
+Self-hostable quota dashboard for Kimi, Claude, Cursor, ChatGPT, Grok, MiniMax, and GLM. A zero-dependency Node server polls each provider and serves a single-page app plus a macOS [Übersicht](https://tracesof.net/uebersicht/) widget from the same cache.
 
 ![AI Quota Watch dashboard](docs/usage_widget.png)
 
@@ -18,6 +18,7 @@ Each card is titled with the bare provider name. Hero and sub-row labels:
 | ChatGPT | 5-hour usage | Weekly usage |
 | Grok | Weekly usage | — |
 | MiniMax | 5-hour usage | Weekly usage |
+| GLM | 5-hour usage | Weekly usage |
 
 Pixel rails fill amber at ≥70 % and red at ≥90 %. Percents display to one decimal. A live-dot in the header shows last refresh time, or `refreshing` / `stale` / `error`. The circular button next to it POSTs `/api/refresh/:provider`.
 
@@ -42,6 +43,7 @@ Requires **Node.js 18+**. No npm dependencies.
 ~/.quota-watch/chatgpt.json
 ~/.quota-watch/minimax.json
 ~/.quota-watch/grok.json
+~/.quota-watch/glm.json
 ```
 
 `chmod 600` those files. How to obtain or refresh tokens (DevTools or browser automation): [`.cursor/skills/refetch-quota-credentials/SKILL.md`](.cursor/skills/refetch-quota-credentials/SKILL.md).
@@ -158,6 +160,17 @@ On HTTP 401 the card shows a **Token expired** banner.
 - `sso`: value of the `sso` cookie from a logged-in https://grok.com request
 - `plan`: optional display label
 - The fetcher calls Grok's private gRPC-Web `GetGrokCreditsConfig` endpoint. Analytics, Stripe, and Cloudflare cookies from DevTools **Copy as cURL** are unused.
+
+### GLM (`glm.json`)
+
+```json
+{
+  "apiKey": "xxxxxxxxxxxxxxxx.xxxxxxxx"
+}
+```
+
+- `apiKey`: API key from https://z.ai/manage-apikey — the key the GLM Coding Plan is tied to
+- Uses Z.ai's internal quota endpoints (`/api/monitor/usage/quota/limit` for meters, `/api/biz/subscription/list` for the plan label). A `success:false` body saying there is no coding plan surfaces as an error, not stale.
 
 ## Project layout
 

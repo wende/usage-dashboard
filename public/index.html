@@ -253,6 +253,43 @@
         </div>
       </article>
 
+      <!-- GLM -->
+      <article class="card" id="card-glm">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#111"/><text x="12" y="16.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#fff">Z</text></svg>
+            </span>
+            <h2 class="title">GLM</h2>
+          </div>
+          <span class="header-right">
+            <span class="plan" id="glm-plan"></span>
+            <button type="button" class="card-refresh" data-refresh="glm" title="Refresh GLM" aria-label="Refresh GLM">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.65 2.35A7 7 0 0 0 2.1 6.5H.5l2.55 2.55L5.6 6.5H3.15a4.9 4.9 0 0 1 8.2-2.85l1.3-1.3ZM3.35 13.65A7 7 0 0 0 13.9 9.5h1.6l-2.55-2.55L10.4 9.5h2.45a4.9 4.9 0 0 1-8.2 2.85l-1.3 1.3Z"/></svg>
+            </button>
+            <span class="live-dot" data-live="glm">--</span>
+          </span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="glm-fivePct">--%</output>
+            <span class="name">5-hour usage</span>
+            <span class="reset" id="glm-fiveReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="glm-fiveRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">Weekly usage</span>
+            <span class="val" id="glm-weeklyPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="glm-weeklyRail" aria-hidden="true"></div>
+          <span class="row-sub" id="glm-weeklyReset"></span>
+        </div>
+      </article>
+
     </div>
   </div>
   <script src="/app.js"></script>
