@@ -20,6 +20,7 @@
     "card-chatgpt": { x: 4, y: 7, w: 4, h: 10 },
     "card-minimax": { x: 8, y: 7, w: 4, h: 7 },
     "card-grok": { x: 0, y: 14, w: 4, h: 7 },
+    "card-glm": { x: 8, y: 14, w: 4, h: 7 },
   };
 
   var board = document.getElementById("dashboard");
@@ -111,8 +112,11 @@
     }
     board.classList.add("is-editable");
     tiles.forEach(function (el) {
-      var t = layout[el.id] || DEFAULTS[el.id];
-      if (!t) return;
+      // ponytail: a card missing from both layout and DEFAULTS used to be
+      // skipped here, which also killed its drag/resize (NaN coords). Give it
+      // a top-left slot so it stays movable; next provider should still be
+      // added to DEFAULTS.
+      var t = layout[el.id] || DEFAULTS[el.id] || { x: 0, y: 0, w: 4, h: 7 };
       layout[el.id] = t;
       applyTile(el, t);
     });
