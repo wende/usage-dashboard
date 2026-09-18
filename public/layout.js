@@ -14,10 +14,8 @@
 
   /** Default layout matching the screenshot grid (12-col). */
   var DEFAULTS = {
-    "card-kimi": { x: 0, y: 0, w: 4, h: 14 },
     "card-cursor": { x: 8, y: 0, w: 4, h: 7 },
     "card-chatgpt": { x: 4, y: 7, w: 4, h: 10 },
-    "card-minimax": { x: 8, y: 7, w: 4, h: 7 },
     "card-glm": { x: 8, y: 14, w: 4, h: 7 },
     "card-devin": { x: 0, y: 14, w: 4, h: 7 },
   };
