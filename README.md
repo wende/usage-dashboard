@@ -1,6 +1,6 @@
 # Usage Dashboard
 
-Self-hostable quota dashboard for Kimi, Claude, Cursor, ChatGPT, Grok, MiniMax, and GLM. A zero-dependency Node server polls each provider and serves a single-page app plus a macOS [Übersicht](https://tracesof.net/uebersicht/) widget from the same cache.
+Self-hostable quota dashboard for Kimi, Claude, Cursor, ChatGPT, Grok, MiniMax, GLM, and Devin. A zero-dependency Node server polls each provider and serves a single-page app plus a macOS [Übersicht](https://tracesof.net/uebersicht/) widget from the same cache.
 
 ![AI Quota Watch dashboard](docs/usage_widget.png)
 
@@ -19,6 +19,7 @@ Each card is titled with the bare provider name. Hero and sub-row labels:
 | Grok | Weekly usage | — |
 | MiniMax | 5-hour usage | Weekly usage |
 | GLM | 5-hour usage | Weekly usage |
+| Devin | Daily usage | Weekly usage |
 
 Pixel rails fill amber at ≥70 % and red at ≥90 %. Percents display to one decimal. A live-dot in the header shows last refresh time, or `refreshing` / `stale` / `error`. The circular button next to it POSTs `/api/refresh/:provider`.
 
@@ -44,6 +45,7 @@ Requires **Node.js 18+**. No npm dependencies.
 ~/.quota-watch/minimax.json
 ~/.quota-watch/grok.json
 ~/.quota-watch/glm.json
+~/.quota-watch/devin.json
 ```
 
 `chmod 600` those files. How to obtain or refresh tokens (DevTools or browser automation): [`.cursor/skills/refetch-quota-credentials/SKILL.md`](.cursor/skills/refetch-quota-credentials/SKILL.md).
@@ -62,7 +64,7 @@ The server refreshes every provider on boot and every **15 minutes**, serves `pu
 |----------|--------|-------------|
 | `/api/status` | GET | Cached provider payloads (`refreshing` + `providers`) |
 | `/api/refresh` | POST | Immediate refresh of all providers (202) |
-| `/api/refresh/:provider` | POST | Refresh one of `kimi`, `claude`, `cursor`, `chatgpt`, `minimax`, `grok` |
+| `/api/refresh/:provider` | POST | Refresh one of `kimi`, `claude`, `cursor`, `chatgpt`, `minimax`, `grok`, `glm`, `devin` |
 
 The dashboard and Übersicht widget poll `/api/status` every 30 s.
 
@@ -171,6 +173,19 @@ On HTTP 401 the card shows a **Token expired** banner.
 
 - `apiKey`: API key from https://z.ai/manage-apikey — the key the GLM Coding Plan is tied to
 - Uses Z.ai's internal quota endpoints (`/api/monitor/usage/quota/limit` for meters, `/api/biz/subscription/list` for the plan label). A `success:false` body saying there is no coding plan surfaces as an error, not stale.
+
+### Devin (`devin.json`)
+
+```json
+{
+  "token": "auth1_...",
+  "orgId": "org-..."
+}
+```
+
+- `token`: `Authorization: Bearer` from any authenticated https://app.devin.ai request (e.g. the `billing/quota/usage` call the settings/usage page makes)
+- `orgId`: the `x-cog-org-id` header on the same request, also visible in the API URL path
+- Orgs on weekly-only billing return `hide_daily_quota: true`; the daily meter then renders empty.
 
 ## Project layout
 

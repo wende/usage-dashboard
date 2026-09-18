@@ -12,7 +12,9 @@ import test from "node:test";
 const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
 const layout = await readFile(new URL("../public/layout.js", import.meta.url), "utf8");
 
-const cardIds = [...html.matchAll(/class="card[^"]*" id="(card-[\w-]+)"/g)].map((m) => m[1]);
+// Hidden providers (data-hidden-provider) are excluded from layout.js tiles,
+// so they need no DEFAULTS entry either.
+const cardIds = [...html.matchAll(/class="card[^"]*" id="(card-[\w-]+)"(?![^>]*data-hidden-provider)/g)].map((m) => m[1]);
 const defaultsIds = [...layout.matchAll(/"(card-[\w-]+)":\s*\{/g)].map((m) => m[1]);
 
 test("every dashboard card has a DEFAULTS layout entry", () => {

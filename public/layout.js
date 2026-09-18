@@ -15,18 +15,19 @@
   /** Default layout matching the screenshot grid (12-col). */
   var DEFAULTS = {
     "card-kimi": { x: 0, y: 0, w: 4, h: 14 },
-    "card-claude": { x: 4, y: 0, w: 4, h: 7 },
     "card-cursor": { x: 8, y: 0, w: 4, h: 7 },
     "card-chatgpt": { x: 4, y: 7, w: 4, h: 10 },
     "card-minimax": { x: 8, y: 7, w: 4, h: 7 },
-    "card-grok": { x: 0, y: 14, w: 4, h: 7 },
     "card-glm": { x: 8, y: 14, w: 4, h: 7 },
+    "card-devin": { x: 0, y: 14, w: 4, h: 7 },
   };
 
   var board = document.getElementById("dashboard");
   if (!board) return;
 
-  var tiles = Array.prototype.slice.call(board.querySelectorAll(".card[id]"));
+  var tiles = Array.prototype.slice.call(
+    board.querySelectorAll(".card[id]:not([data-hidden-provider])")
+  );
   var layout = loadLayout();
   var active = null;
   var zTop = 10;

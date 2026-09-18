@@ -416,6 +416,7 @@ html, body {
   gap: 8px;
 }
 
+.card[data-hidden-provider] { display: none !important; }
 .section[hidden] {
   display: none !important;
 }

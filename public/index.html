@@ -64,8 +64,8 @@
         </div>
       </article>
 
-      <!-- Claude -->
-      <article class="card" id="card-claude">
+      <!-- Claude (hidden) -->
+      <article class="card" id="card-claude" hidden data-hidden-provider>
         <header class="card-header">
           <div class="brand">
             <span class="logo" aria-hidden="true">
@@ -184,8 +184,8 @@
         </div>
       </article>
 
-      <!-- Grok -->
-      <article class="card" id="card-grok">
+      <!-- Grok (hidden) -->
+      <article class="card" id="card-grok" hidden data-hidden-provider>
         <header class="card-header">
           <div class="brand">
             <span class="logo" aria-hidden="true">
@@ -287,6 +287,42 @@
           </div>
           <div class="pxrail sub-rail" id="glm-weeklyRail" aria-hidden="true"></div>
           <span class="row-sub" id="glm-weeklyReset"></span>
+        </div>
+      </article>
+
+      <!-- Devin -->
+      <article class="card" id="card-devin">
+        <header class="card-header">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#5B5BD6"/><text x="12" y="16.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#fff">D</text></svg>
+            </span>
+            <h2 class="title">Devin</h2>
+          </div>
+          <span class="header-right">
+            <button type="button" class="card-refresh" data-refresh="devin" title="Refresh Devin" aria-label="Refresh Devin">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.65 2.35A7 7 0 0 0 2.1 6.5H.5l2.55 2.55L5.6 6.5H3.15a4.9 4.9 0 0 1 8.2-2.85l1.3-1.3ZM3.35 13.65A7 7 0 0 0 13.9 9.5h1.6l-2.55-2.55L10.4 9.5h2.45a4.9 4.9 0 0 1-8.2 2.85l-1.3 1.3Z"/></svg>
+            </button>
+            <span class="live-dot" data-live="devin">--</span>
+          </span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-line">
+            <output id="devin-dailyPct">--%</output>
+            <span class="name">Daily usage</span>
+            <span class="reset" id="devin-dailyReset"></span>
+          </div>
+          <div class="pxrail hero-rail" id="devin-dailyRail" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <div class="row-head">
+            <span class="label">Weekly usage</span>
+            <span class="val" id="devin-weeklyPct">--%</span>
+          </div>
+          <div class="pxrail sub-rail" id="devin-weeklyRail" aria-hidden="true"></div>
+          <span class="row-sub" id="devin-weeklyReset"></span>
         </div>
       </article>
 

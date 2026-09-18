@@ -14,6 +14,9 @@ kimi-token.txt
 **/chatgpt.json
 **/grok.json
 **/minimax.json
+**/devin.json
+**/glm.json
+scripts/
 !.cursor/**
 !credentials/*.template
 __pycache__/

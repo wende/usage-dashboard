@@ -130,11 +130,6 @@
       ],
       list: { key: "gifts", wrapId: "kimi-giftWrap", sectionId: "kimi-giftSection",
         label: function (g) { return "Gift · expires " + (g.expires || "unknown"); } } },
-    { name: "claude",
-      hero: { key: "fiveHour", id: "five", cells: 40 },
-      rows: [{ key: "sevenDay", id: "seven", cells: 28 }],
-      list: { key: "scoped", wrapId: "claude-scopedWrap", sectionId: "claude-scopedSection",
-        label: function (s) { return s.name; } } },
     { name: "cursor",
       hero: { key: "total", id: "total", cells: 40, resetId: "cursor-cycle", resetKey: "cycle" },
       rows: [{ key: "api", id: "api", cells: 40, hotPct: true }],
@@ -150,9 +145,9 @@
       hero: { key: "fiveHour", id: "five", cells: 40 },
       rows: [{ key: "weekly", id: "weekly", cells: 28 }],
       plan: true },
-    { name: "grok",
-      hero: { key: "weekly", id: "weekly", cells: 40 },
-      plan: true, expired: true },
+    { name: "devin",
+      hero: { key: "daily", id: "daily", cells: 40 },
+      rows: [{ key: "weekly", id: "weekly", cells: 28 }] },
   ];
 
   function paintWindow(cfg, part, w, resetText) {
