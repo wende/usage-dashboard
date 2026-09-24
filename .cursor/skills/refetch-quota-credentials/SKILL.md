@@ -85,6 +85,11 @@ WebBridge bootstrap: if `status` has `running: false`, run `kimi-webbridge start
 ### Claude — https://claude.ai
 - Any `claude.ai` API request → full `Cookie` header → `cookies`
 - URL like `/api/organizations/{orgId}/usage` → `orgId`
+- Verify with `GET https://claude.ai/api/organizations/{orgId}/usage` + `Cookie` — expect **200**.
+- **Pitfall (2026-09-24):** Cloudflare 403s Node `fetch` and `curl` from the Mac
+  Studio's IP regardless of cookie freshness; python `urllib` passes.
+  `lib/fetchers/claude.js` retries through python on 403 — a fresh 403 on the
+  Studio alone does not mean the cookies are stale.
 
 ### Cursor — https://cursor.com/dashboard
 - Request to `/api/usage-summary`
